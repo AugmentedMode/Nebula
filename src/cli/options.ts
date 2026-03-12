@@ -53,7 +53,7 @@ export const headless = Options.boolean("headless").pipe(
 // ── Paths & hub ──────────────────────────────────────────
 
 export const home = Options.directory("home").pipe(
-  Options.withDescription("Data directory (default: ~/.helios)"),
+  Options.withDescription("Data directory (default: ~/.nebula)"),
   Options.optional,
 );
 

@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { HELIOS_DIR } from "../paths.js";
+import { NEBULA_DIR } from "../paths.js";
 
-const CONFIG_DIR = HELIOS_DIR;
+const CONFIG_DIR = NEBULA_DIR;
 const HUB_FILE = join(CONFIG_DIR, "hub.json");
 
 export interface HubConfig {

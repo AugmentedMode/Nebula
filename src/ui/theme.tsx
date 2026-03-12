@@ -2,36 +2,37 @@ import { Box, Text } from "ink";
 
 // ─── Colors ──────────────────────────────────────────
 export const C = {
-  primary: "yellow" as const,
-  bright: "yellowBright" as const,
+  primary: "cyan" as const,
+  bright: "blueBright" as const,
   text: "white" as const,
   dim: "gray" as const,
   error: "red" as const,
-  success: "green" as const,
+  success: "cyanBright" as const,
 };
 
 // ─── Glyphs ──────────────────────────────────────────
 export const G = {
-  brand: "◈",
-  section: "◈",
+  brand: "✦",
+  section: "✦",
   bullet: "▹",
   active: "▸",
-  dot: "◆",
-  dotDim: "◇",
-  rule: "━",
+  dot: "✦",
+  dotDim: "·",
+  rule: "═",
   dash: "╌",
 };
 
 // ─── Metric Colors ───────────────────────────────────
 export const METRIC_COLORS = [
-  "yellowBright",
+  "cyanBright",
+  "blueBright",
+  "whiteBright",
   "cyanBright",
   "greenBright",
   "magentaBright",
   "redBright",
-  "blueBright",
-  "whiteBright",
-  "yellow",
+  "cyan",
+  "blue",
   "cyan",
   "green",
 ] as const;
@@ -58,4 +59,3 @@ export function HRule({ dim = false }: { dim?: boolean }) {
     </Box>
   );
 }
-

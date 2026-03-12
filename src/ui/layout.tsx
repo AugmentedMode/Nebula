@@ -15,7 +15,7 @@ import { MetricsOverlay } from "./overlays/metrics-overlay.js";
 import type { MonitorConfig } from "../core/monitor.js";
 import type { MouseEvent } from "./mouse-filter.js";
 import type { StickyNote } from "../core/stickies.js";
-import type { HeliosRuntime } from "../init.js";
+import type { NebulaRuntime } from "../init.js";
 import type { Attachment } from "../providers/types.js";
 import { StickyNotesPanel } from "./panels/sticky-notes.js";
 import { VERSION, checkForUpdate } from "../version.js";
@@ -24,7 +24,7 @@ import { pollTaskStatuses, handleFinishedTasks, buildMonitorMessage } from "../c
 import type { Message, ToolData, TaskInfo } from "./types.js";
 
 interface LayoutProps {
-  runtime: HeliosRuntime;
+  runtime: NebulaRuntime;
   mouseEmitter?: EventEmitter;
   headless?: boolean;
   initialPrompt?: string;
@@ -53,6 +53,8 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
   const [activeOverlay, setActiveOverlay] = useState<"none" | "tasks" | "metrics">("none");
   const [resourceData, setResourceData] = useState<Map<string, import("../metrics/resources.js").MachineResources>>(new Map());
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+  const [workingStatus, setWorkingStatus] = useState<string | null>(null);
+  const [workingPreview, setWorkingPreview] = useState<string | null>(null);
 
   // Check for updates on mount (non-blocking)
   useEffect(() => {
@@ -282,10 +284,13 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
 
       addMessage("user", input);
       setIsStreaming(true);
+      setWorkingStatus("Thinking");
+      setWorkingPreview(null);
 
       try {
         let assistantText = "";
         let assistantMsgId: number | null = null;
+        let sawAssistantText = false;
         // Map tool callId -> message id for attaching results
         const toolMsgIds = new Map<string, number>();
 
@@ -294,6 +299,11 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
           experimentTracker?.onEvent(event);
 
           if (event.type === "text" && event.delta) {
+            if (!sawAssistantText) {
+              sawAssistantText = true;
+              setWorkingStatus("Responding");
+              setWorkingPreview(null);
+            }
             assistantText += event.delta;
             if (assistantMsgId === null) {
               assistantMsgId = addMessage("assistant", assistantText);
@@ -302,7 +312,16 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
             }
           }
 
+          if (event.type === "status") {
+            setWorkingStatus(event.status);
+            if (!sawAssistantText) {
+              setWorkingPreview(event.preview ?? null);
+            }
+          }
+
           if (event.type === "tool_call") {
+            setWorkingStatus(`Using ${event.name}`);
+            setWorkingPreview(null);
             const toolData: ToolData = {
               callId: event.id,
               name: event.name,
@@ -315,6 +334,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
           }
 
           if (event.type === "tool_result") {
+            setWorkingStatus("Thinking");
             const msgId = toolMsgIds.get(event.callId);
             if (msgId !== undefined) {
               setMessages((prev) =>
@@ -331,16 +351,27 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
           }
 
           if (event.type === "error") {
+            setWorkingStatus(null);
+            setWorkingPreview(null);
             addMessage("error", event.error.message);
+          }
+
+          if (event.type === "done") {
+            setWorkingStatus(null);
+            setWorkingPreview(null);
           }
         }
       } catch (err) {
+        setWorkingStatus(null);
+        setWorkingPreview(null);
         addMessage(
           "error",
           err instanceof Error ? err.message : "Unknown error",
         );
       } finally {
         setIsStreaming(false);
+        setWorkingStatus(null);
+        setWorkingPreview(null);
       }
     },
     [orchestrator, sleepManager, addMessage, updateMessage, setMessages, connectionPool, metricStore],
@@ -471,15 +502,15 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
           <Box flexGrow={1} flexShrink={1}>
             {messages.length === 0 && !headless ? (
               <Box flexGrow={1} alignItems="center" justifyContent="center" flexDirection="column">
-                <Text color={C.primary} bold>{G.brand}</Text>
-                <Text color={C.primary} bold>H E L I O S</Text>
-                <Text color={C.dim}>autonomous ml research</Text>
+                <Text color={C.bright} bold>{`${G.brand} ${G.brand} ${G.brand}`}</Text>
+                <Text color={C.primary} bold>N E B U L A</Text>
+                <Text color={C.dim}>autonomous research in orbit</Text>
                 <Text color={C.dim} dimColor>v{VERSION}</Text>
                 <Text color={C.dim} dimColor>{""}</Text>
                 <Text color={C.dim} dimColor>/help for commands</Text>
                 {updateAvailable && (
                   <Box marginTop={1}>
-                    <Text color={C.bright}>update available: v{updateAvailable} — npm i -g helios</Text>
+                    <Text color={C.bright}>update available: v{updateAvailable} — npm i -g nebula</Text>
                   </Box>
                 )}
               </Box>
@@ -500,7 +531,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
         </Box>
 
         {!headless && <Box flexShrink={0}><KeyHintRule /></Box>}
-        <Box flexShrink={0}><StatusBar orchestrator={orchestrator} sleepManager={sleepManager} monitorManager={monitorManager} /></Box>
+        <Box flexShrink={0}><StatusBar orchestrator={orchestrator} sleepManager={sleepManager} monitorManager={monitorManager} workingStatus={workingStatus} workingPreview={workingPreview} isStreaming={isStreaming} /></Box>
         {!headless && (
           <Box flexShrink={0}>
             <InputBar
@@ -547,7 +578,7 @@ function HeadlessHeader({ agentName, width }: { agentName: string; width: number
 
 /** Single header line: logo on the left, panel labels right-aligned in each half. */
 function HeaderWithPanels({ width }: { width: number }) {
-  const logo = ` ▓▒░ ${G.brand} HELIOS ░▒▓ `;
+  const logo = ` ✦·. ${G.brand} NEBULA .·✦ `;
   const ver = `${VERSION} `;
   const metricsLabel = ` ⣤⣸⣿ METRICS `;
   const tasksLabel = ` ⊳ TASKS `;

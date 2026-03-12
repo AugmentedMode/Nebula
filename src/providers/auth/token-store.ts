@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { getHeliosDir } from "../../store/database.js";
+import { getNebulaDir } from "../../store/database.js";
 import type { AuthCredentials } from "../types.js";
 
 const AUTH_FILE = "auth.json";
@@ -15,7 +15,7 @@ export class TokenStore {
   private data: StoredAuth;
 
   constructor() {
-    const dir = join(getHeliosDir(), "auth");
+    const dir = join(getNebulaDir(), "auth");
     mkdirSync(dir, { recursive: true });
     this.filePath = join(dir, AUTH_FILE);
     this.data = this.load();

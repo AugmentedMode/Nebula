@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import {
   CHECKPOINT_ACK,
   type AgentEvent,
@@ -12,7 +11,7 @@ import {
 } from "../types.js";
 import { SessionStore } from "../../store/session-store.js";
 
-const DEFAULT_BASE_URL = "http://127.0.0.1:1234/v1";
+const DEFAULT_BASE_URL = defaultBaseUrl();
 const DEFAULT_MODEL = "local-model";
 
 type ChatRole = "system" | "user" | "assistant" | "tool";
@@ -205,8 +204,7 @@ export class LocalOpenAIProvider implements ModelProvider {
 
   async fetchModels(): Promise<ModelInfo[]> {
     try {
-      const resp = await this.fetchJson("/models");
-      const models = Array.isArray(resp.data) ? resp.data : [];
+      const models = await this.fetchModelsCompat();
       if (models.length > 0) {
         return models.map((model: any) => ({
           id: model.id,
@@ -220,7 +218,13 @@ export class LocalOpenAIProvider implements ModelProvider {
   }
 
   private async healthcheck(): Promise<void> {
-    await this.fetchJson("/models");
+    const models = await this.fetchModelsCompat();
+    if (
+      models.length > 0 &&
+      (!this.currentModel || this.currentModel === DEFAULT_MODEL)
+    ) {
+      this.currentModel = models[0].id;
+    }
   }
 
   private async createChatCompletion(
@@ -266,7 +270,11 @@ export class LocalOpenAIProvider implements ModelProvider {
   }
 
   private async fetchJson(path: string): Promise<any> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    return this.fetchJsonFromBase(this.baseUrl, path);
+  }
+
+  private async fetchJsonFromBase(baseUrl: string, path: string): Promise<any> {
+    const response = await fetch(`${baseUrl}${path}`, {
       headers: this.headers(),
     });
     if (!response.ok) {
@@ -274,6 +282,29 @@ export class LocalOpenAIProvider implements ModelProvider {
       throw new Error(`Local provider error (${response.status}): ${text || response.statusText}`);
     }
     return response.json();
+  }
+
+  private async fetchModelsCompat(): Promise<Array<{ id: string }>> {
+    try {
+      const resp = await this.fetchJson("/models");
+      return Array.isArray(resp.data) ? resp.data : [];
+    } catch (err) {
+      if (!looksLikeNotFound(err)) throw err;
+    }
+
+    const tags = await this.fetchJsonFromBase(this.rootBaseUrl(), "/api/tags");
+    const models = Array.isArray(tags.models) ? tags.models : [];
+    return models
+      .map((model: any) => ({
+        id: model.model ?? model.name,
+      }))
+      .filter((model: { id?: string }) => Boolean(model.id)) as Array<{ id: string }>;
+  }
+
+  private rootBaseUrl(): string {
+    return this.baseUrl.endsWith("/v1")
+      ? this.baseUrl.slice(0, -3)
+      : this.baseUrl;
   }
 
   private headers(): Record<string, string> {
@@ -288,5 +319,31 @@ export class LocalOpenAIProvider implements ModelProvider {
 }
 
 function normalizeBaseUrl(url: string): string {
-  return url.replace(/\/+$/, "");
+  const trimmed = url.replace(/\/+$/, "");
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.pathname === "" || parsed.pathname === "/") {
+      parsed.pathname = "/v1";
+      return parsed.toString().replace(/\/+$/, "");
+    }
+  } catch {
+    // Fall through to raw string handling.
+  }
+  return trimmed;
+}
+
+function defaultBaseUrl(): string {
+  const ollamaHost = process.env.OLLAMA_HOST?.trim();
+  if (ollamaHost) {
+    const base = ollamaHost.startsWith("http://") || ollamaHost.startsWith("https://")
+      ? ollamaHost
+      : `http://${ollamaHost}`;
+    return normalizeBaseUrl(base);
+  }
+  return "http://127.0.0.1:11434/v1";
+}
+
+function looksLikeNotFound(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.includes("(404)") || message.includes("Not Found");
 }

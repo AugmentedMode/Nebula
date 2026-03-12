@@ -221,8 +221,8 @@ export class ResourceCollector {
     if (this._macmonWarned) return;
     this._macmonWarned = true;
     process.stderr.write(
-      "[helios] Tip: install macmon for live GPU utilization & temperature on Apple Silicon\n" +
-      "[helios]   brew install macmon\n",
+      "[nebula] Tip: install macmon for live GPU utilization & temperature on Apple Silicon\n" +
+      "[nebula]   brew install macmon\n",
     );
   }
 

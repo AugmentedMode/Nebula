@@ -1,5 +1,5 @@
 /**
- * `helios search "query"` — full-text search across all session histories.
+ * `nebula search "query"` — full-text search across all session histories.
  */
 
 import { Effect } from "effect";

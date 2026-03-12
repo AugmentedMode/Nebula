@@ -29,7 +29,7 @@ export function createWebFetchTool(): ToolDefinition {
       try {
         const resp = await fetch(url, {
           headers: {
-            "User-Agent": "Helios-ML-Agent/1.0",
+            "User-Agent": "Nebula-ML-Agent/1.0",
             Accept: "text/html,application/xhtml+xml,application/pdf,text/plain,application/json",
           },
           redirect: "follow",

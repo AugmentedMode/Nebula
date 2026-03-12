@@ -37,14 +37,14 @@ export interface ProjectConfig {
 // Constants
 // ---------------------------------------------------------------------------
 
-const CONFIG_FILENAME = "helios.json";
+const CONFIG_FILENAME = "nebula.json";
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Walk up from `startDir` looking for `helios.json`.
+ * Walk up from `startDir` looking for `nebula.json`.
  * Returns the full path to the config file, or null if not found.
  * Stops at the filesystem root or the user's home directory.
  */
@@ -75,7 +75,7 @@ function walkUp(startDir: string): string | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Walk up from `process.cwd()` looking for `helios.json`.
+ * Walk up from `process.cwd()` looking for `nebula.json`.
  * Returns the full path to the config file, or null if not found.
  */
 export function findProjectConfigPath(): string | null {
@@ -87,7 +87,7 @@ export function findProjectConfigPath(): string | null {
 }
 
 /**
- * Walk up from `process.cwd()` looking for `helios.json`.
+ * Walk up from `process.cwd()` looking for `nebula.json`.
  * If found, parse and return it. If not found or parse fails, return null.
  */
 export function findProjectConfig(): ProjectConfig | null {
@@ -105,7 +105,7 @@ export function findProjectConfig(): ProjectConfig | null {
 
 /**
  * Same walk-up logic as `findProjectConfig` but returns the directory
- * containing `helios.json`, or null.
+ * containing `nebula.json`, or null.
  */
 export function findProjectRoot(): string | null {
   try {
@@ -118,7 +118,7 @@ export function findProjectRoot(): string | null {
 }
 
 /**
- * Write `helios.json` to the given directory with pretty-printed JSON.
+ * Write `nebula.json` to the given directory with pretty-printed JSON.
  */
 export function writeProjectConfig(dir: string, config: ProjectConfig): void {
   const target = join(resolve(dir), CONFIG_FILENAME);

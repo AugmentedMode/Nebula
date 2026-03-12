@@ -1,5 +1,5 @@
 /**
- * `helios doctor` — diagnose the full Helios setup.
+ * `nebula doctor` — diagnose the full Nebula setup.
  *
  * Checks auth, machines, storage, project config, and dependencies,
  * printing a clear report with pass/fail/warn indicators.
@@ -257,8 +257,8 @@ async function checkStorage(): Promise<void> {
   heading("Storage");
 
   try {
-    const { HELIOS_DIR } = await import("../paths.js");
-    const dbPath = join(HELIOS_DIR, "helios.db");
+    const { NEBULA_DIR } = await import("../paths.js");
+    const dbPath = join(NEBULA_DIR, "nebula.db");
 
     // Database check
     if (existsSync(dbPath)) {
@@ -289,7 +289,7 @@ async function checkStorage(): Promise<void> {
 
     // Disk space
     try {
-      const dfResult = await sh(`df -h "${HELIOS_DIR}" 2>/dev/null | tail -1`);
+      const dfResult = await sh(`df -h "${NEBULA_DIR}" 2>/dev/null | tail -1`);
       if (dfResult.exitCode === 0 && dfResult.stdout.trim()) {
         const parts = dfResult.stdout.trim().split(/\s+/);
         if (parts.length >= 5) {
@@ -325,7 +325,7 @@ async function checkProject(): Promise<void> {
       const config = findProjectConfig();
 
       if (config) {
-        pass(`helios.json found at ${configPath}`);
+        pass(`nebula.json found at ${configPath}`);
 
         const parts: string[] = [];
         if (config.provider) parts.push(`Provider: ${config.provider}`);
@@ -342,10 +342,10 @@ async function checkProject(): Promise<void> {
           detail(`Notifications: ${config.notifications.channels.length} channel(s) configured`);
         }
       } else {
-        warn(`helios.json found at ${configPath} but could not parse`);
+        warn(`nebula.json found at ${configPath} but could not parse`);
       }
     } else {
-      fail("helios.json not found (searched up from cwd)");
+      fail("nebula.json not found (searched up from cwd)");
     }
   } catch (e) {
     fail(`Error checking project config (${formatError(e)})`);
@@ -389,7 +389,7 @@ export const doctor = Command.make(
   {},
   () =>
     Effect.promise(async () => {
-      console.log("\nhelios doctor\n");
+      console.log("\nnebula doctor\n");
 
       await checkAuth();
       await checkMachines();

@@ -13,7 +13,7 @@ export interface EnvOptions {
 }
 
 export function applyEnv(opts: EnvOptions): void {
-  if (Option.isSome(opts.home)) process.env.HELIOS_HOME = opts.home.value;
+  if (Option.isSome(opts.home)) process.env.NEBULA_HOME = opts.home.value;
   if (Option.isSome(opts.hubUrl)) process.env.AGENTHUB_URL = opts.hubUrl.value;
   if (Option.isSome(opts.hubKey)) process.env.AGENTHUB_KEY = opts.hubKey.value;
   if (Option.isSome(opts.agent)) process.env.AGENTHUB_AGENT = opts.agent.value;

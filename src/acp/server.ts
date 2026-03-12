@@ -1,5 +1,5 @@
 /**
- * ACP Agent server — maps Agent Client Protocol to the Helios Orchestrator.
+ * ACP Agent server — maps Agent Client Protocol to the Nebula Orchestrator.
  *
  * Lifecycle:
  *   Client → initialize        → negotiate capabilities
@@ -29,7 +29,7 @@ import type {
   ToolCallKind,
   SessionUpdate,
 } from "./types.js";
-import type { HeliosRuntime } from "../init.js";
+import type { NebulaRuntime } from "../init.js";
 import type { ToolCallEvent } from "../providers/types.js";
 import type { MonitorConfig } from "../core/monitor.js";
 import type { Message } from "../ui/types.js";
@@ -37,7 +37,7 @@ import { VERSION } from "../version.js";
 import { COMMANDS, handleSlashCommand, type CommandContext } from "../ui/commands.js";
 import { pollTaskStatuses, handleFinishedTasks, buildMonitorMessage } from "../core/task-poller.js";
 
-/** Map helios tool names to ACP tool call kinds. */
+/** Map nebula tool names to ACP tool call kinds. */
 function toolKind(name: string): ToolCallKind {
   if (/read|download|task_output|show_metrics|memory_ls|memory_read/.test(name)) return "read";
   if (/write|upload|patch|memory_write|memory_rm|clear/.test(name)) return "edit";
@@ -76,7 +76,7 @@ function toolTitle(event: ToolCallEvent): string {
 
 export class AcpServer {
   private transport = new StdioTransport();
-  private runtime: HeliosRuntime;
+  private runtime: NebulaRuntime;
   private activeSessions = new Map<string, { cwd: string }>();
   private activePromptSession: string | null = null;
   private initialized = false;
@@ -85,7 +85,7 @@ export class AcpServer {
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(runtime: HeliosRuntime) {
+  constructor(runtime: NebulaRuntime) {
     this.runtime = runtime;
     this.registerHandlers();
     this.wireMonitor();
@@ -235,7 +235,7 @@ export class AcpServer {
         }
       }
     } catch (err) {
-      process.stderr.write(`[helios-acp] inject prompt error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.stderr.write(`[nebula-acp] inject prompt error: ${err instanceof Error ? err.message : String(err)}\n`);
     } finally {
       this.prompting = false;
     }
@@ -276,8 +276,8 @@ export class AcpServer {
         mcpCapabilities: { http: false, sse: false },
       },
       agentInfo: {
-        name: "helios",
-        title: "Helios — Autonomous ML Research Agent",
+        name: "nebula",
+        title: "Nebula — Autonomous ML Research Agent",
         version: VERSION,
       },
       authMethods: [],

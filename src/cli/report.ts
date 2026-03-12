@@ -1,6 +1,6 @@
 /**
- * `helios report [session-id]` — generate an experiment writeup from session data.
- * Outputs markdown to stdout (pipeable: `helios report > results.md`)
+ * `nebula report [session-id]` — generate an experiment writeup from session data.
+ * Outputs markdown to stdout (pipeable: `nebula report > results.md`)
  */
 
 import { Effect, Option } from "effect";
@@ -67,7 +67,7 @@ export const report = Command.make(
 
       const activeProvider = runtime.orchestrator.currentProvider;
       if (!activeProvider) {
-        process.stderr.write("No active provider. Authenticate first with 'helios auth login'.\n");
+        process.stderr.write("No active provider. Authenticate first with 'nebula auth login'.\n");
         runtime.cleanup();
         process.exit(1);
       }

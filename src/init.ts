@@ -59,7 +59,7 @@ import { ExperimentBrancher } from "./experiments/branching.js";
 import { RunStore } from "./runs/store.js";
 import { RunScheduler } from "./runs/scheduler.js";
 
-const SYSTEM_PROMPT = `You are Helios, an autonomous ML research agent. You help researchers design, run, and monitor machine learning experiments on local and remote machines.
+const SYSTEM_PROMPT = `You are Nebula, an autonomous ML research agent. You help researchers design, run, and monitor machine learning experiments on local and remote machines.
 
 ## Machines
 - "local" is always available — it runs commands on the user's machine directly (no SSH).
@@ -85,7 +85,7 @@ const SYSTEM_PROMPT = `You are Helios, an autonomous ML research agent. You help
 remote_exec_background:
 - Returns a pid and log_path
 - Automatically appears in the TASKS panel
-- Stdout/stderr is captured — Helios parses it for live metrics in the dashboard
+- Stdout/stderr is captured — Nebula parses it for live metrics in the dashboard
 - **DO NOT redirect stdout in your command** (no > file, no tee, no logging to file). Redirecting stdout breaks metric collection.
 - To check output, use task_output — do NOT manually tail or cat the log file.
 
@@ -247,7 +247,7 @@ You are connected to AgentHub — a shared platform where multiple agents publis
 
 **Source tracking**: Every time you fetch a commit or read a useful post, immediately write to /sources/<name> in memory with the agent ID, commit hash or post ID, and what you used from it. This ensures proper attribution survives context checkpoints. When writing experiment writeups, cite these sources.`;
 
-export interface HeliosRuntime {
+export interface NebulaRuntime {
   orchestrator: Orchestrator;
   sleepManager: SleepManager;
   connectionPool: ConnectionPool;
@@ -274,8 +274,8 @@ export interface RuntimeOptions {
   claudeMode?: "cli" | "api";
 }
 
-export async function createRuntime(options: RuntimeOptions = {}): Promise<HeliosRuntime> {
-  // Project config (helios.json in cwd or parent dirs)
+export async function createRuntime(options: RuntimeOptions = {}): Promise<NebulaRuntime> {
+  // Project config (nebula.json in cwd or parent dirs)
   const projectConfig = findProjectConfig();
 
   const prefs = loadPreferences();
@@ -307,7 +307,7 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
   for (const machine of machines) {
     connPool.addMachine(machine);
     connPool.connect(machine.id).catch((err) => {
-      process.stderr.write(`[helios] Failed to connect to ${machine.id}: ${formatError(err)}\n`);
+      process.stderr.write(`[nebula] Failed to connect to ${machine.id}: ${formatError(err)}\n`);
     });
   }
 
@@ -358,8 +358,8 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
   let systemPrompt = SYSTEM_PROMPT;
   if (hubConfig?.agentName) {
     systemPrompt = systemPrompt.replace(
-      "You are Helios, an autonomous ML research agent.",
-      `You are Helios agent "${hubConfig.agentName}". This is your unique identity — your agent ID is "${hubConfig.agentName}". When creating directories, naming files, identifying yourself in posts, or any time you need "your name" or "your agent ID", use "${hubConfig.agentName}". You are an autonomous ML research agent.`,
+      "You are Nebula, an autonomous ML research agent.",
+      `You are Nebula agent "${hubConfig.agentName}". This is your unique identity — your agent ID is "${hubConfig.agentName}". When creating directories, naming files, identifying yourself in posts, or any time you need "your name" or "your agent ID", use "${hubConfig.agentName}". You are an autonomous ML research agent.`,
     );
   }
   if (hubConfig) {
@@ -436,7 +436,7 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
     if (model) await orch.setModel(model);
     if (prefs.reasoningEffort) await orch.setReasoningEffort(prefs.reasoningEffort as any);
   } catch (err) {
-    process.stderr.write(`[helios] Failed to authenticate ${initialProvider} provider: ${formatError(err)}\n`);
+    process.stderr.write(`[nebula] Failed to authenticate ${initialProvider} provider: ${formatError(err)}\n`);
   }
 
   return {

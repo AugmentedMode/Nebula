@@ -49,7 +49,7 @@ export class ExperimentBrancher {
       .replace(/[^a-z0-9-]/g, "-")
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
-    const branchName = `helios/exp-${sanitized}-${Date.now().toString(36)}`;
+    const branchName = `nebula/exp-${sanitized}-${Date.now().toString(36)}`;
 
     const create = await this.executor.exec(
       machineId,
@@ -121,7 +121,7 @@ export class ExperimentBrancher {
   }
 
   /**
-   * List all helios experiment branches in a repo.
+   * List all nebula experiment branches in a repo.
    */
   async listBranches(
     machineId: string,
@@ -129,7 +129,7 @@ export class ExperimentBrancher {
   ): Promise<string[]> {
     const result = await this.executor.exec(
       machineId,
-      `cd ${shellQuote(repoPath)} && git branch --list 'helios/exp-*' --format='%(refname:short)'`,
+      `cd ${shellQuote(repoPath)} && git branch --list 'nebula/exp-*' --format='%(refname:short)'`,
     );
     if (result.exitCode !== 0) return [];
     return result.stdout.trim().split("\n").filter(Boolean);

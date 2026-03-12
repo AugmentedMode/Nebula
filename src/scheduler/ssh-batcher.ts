@@ -7,7 +7,7 @@ interface BatchEntry {
   reject: (error: Error) => void;
 }
 
-const DELIMITER_PREFIX = "---HELIOS_DELIM:";
+const DELIMITER_PREFIX = "---NEBULA_DELIM:";
 const DELIMITER_SUFFIX = "---";
 
 /**

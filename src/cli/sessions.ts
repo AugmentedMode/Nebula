@@ -1,5 +1,5 @@
 /**
- * `helios sessions` — list recent sessions.
+ * `nebula sessions` — list recent sessions.
  */
 
 import { Effect } from "effect";

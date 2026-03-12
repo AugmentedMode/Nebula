@@ -129,7 +129,7 @@ export function createExperimentBranchTools(brancher: ExperimentBrancher): ToolD
     {
       name: "exp_branches",
       description:
-        "List all helios experiment branches in a repo.",
+        "List all nebula experiment branches in a repo.",
       parameters: {
         type: "object",
         properties: {

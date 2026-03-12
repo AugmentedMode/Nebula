@@ -37,8 +37,8 @@ export class OpenAIOAuth {
     if (this.onAuthUrl) {
       this.onAuthUrl(authUrl);
     } else {
-      process.stderr.write(`\n[helios] OpenAI auth: ${authUrl}\n`);
-      process.stderr.write(`[helios] If your browser doesn't open, copy the URL above.\n`);
+      process.stderr.write(`\n[nebula] OpenAI auth: ${authUrl}\n`);
+      process.stderr.write(`[nebula] If your browser doesn't open, copy the URL above.\n`);
     }
 
     // Try to open browser — non-fatal if it fails
@@ -171,7 +171,7 @@ function openBrowser(url: string, onAuthUrl: AuthUrlCallback | null): void {
       if (onAuthUrl) {
         onAuthUrl(msg);
       } else {
-        process.stderr.write(`[helios] ${msg}\n`);
+        process.stderr.write(`[nebula] ${msg}\n`);
       }
     }
   });

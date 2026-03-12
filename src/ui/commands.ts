@@ -68,7 +68,7 @@ export const COMMANDS: SlashCommand[] = [
   { name: "switch", args: "<claude|openai|local>", description: "Switch model provider" },
   { name: "model", args: "<model-id>", description: "Set model (e.g. gpt-5.4, claude-opus-4-6)" },
   { name: "models", description: "List available models for current provider" },
-  { name: "local", args: "[connect|status]", description: "Configure local OpenAI-compatible provider" },
+  { name: "local", args: "[connect|status|models|use]", description: "Configure local OpenAI-compatible provider" },
   { name: "reasoning", args: "<level>", description: "Set reasoning effort (none/low/medium/high/max)" },
   { name: "claude-mode", args: "<cli|api>", description: "Switch Claude auth mode (cli = Agent SDK, api = API key)" },
   { name: "resume", args: "[number]", description: "List or resume a past session" },
@@ -84,7 +84,7 @@ export const COMMANDS: SlashCommand[] = [
   { name: "memory", args: "[path]", description: "Show the memory tree (virtual filesystem)" },
   { name: "status", description: "Show provider, model, state, and cost" },
   { name: "clear", description: "Clear conversation history" },
-  { name: "quit", description: "Exit Helios" },
+  { name: "quit", description: "Exit Nebula" },
 ];
 
 /** Format COMMANDS into the /help text block. */
@@ -138,7 +138,7 @@ export async function handleSlashCommand(
       cmdReasoning(args, ctx);
       break;
     case "models":
-      cmdModels(ctx);
+      cmdModels(args, ctx);
       break;
     case "local":
       cmdLocal(args, ctx);
@@ -241,23 +241,81 @@ function cmdLocal(args: string[], ctx: CommandContext): void {
     return;
   }
 
-  addMessage("system", "Usage: /local [connect <base-url> <model> [api-key] | status]");
+  if (subCmd === "models") {
+    addMessage("system", "Fetching local models...");
+    local.fetchModels().then(
+      (models) => {
+        if (models.length === 0) {
+          addMessage("system", "No local models found.");
+          return;
+        }
+        lastLocalModelListing = models;
+        const current = local.currentModel;
+        const lines = models.map((model, i) => {
+          const marker = model.id === current ? " ◆" : "";
+          const desc = model.description ? ` — ${model.description}` : "";
+          return `  ${i + 1}. ${model.id}${marker}${desc}`;
+        });
+        addMessage("system", `Local models:\n${lines.join("\n")}\n\nUse /local use <number|model-id> to select one.`);
+      },
+      (err) => addMessage("error", `Failed to fetch local models: ${formatError(err)}`),
+    );
+    return;
+  }
+
+  if (subCmd === "use") {
+    const modelArg = args[1];
+    if (!modelArg) {
+      addMessage("system", "Usage: /local use <number|model-id>");
+      return;
+    }
+    const model = resolveListedModel(modelArg, lastLocalModelListing);
+    if (!model) {
+      addMessage(
+        "system",
+        lastLocalModelListing.length > 0
+          ? `Unknown local model selection. Choose 1-${lastLocalModelListing.length}, or use a full model id.`
+          : "Unknown local model. Run /local models first, or pass a full model id.",
+      );
+      return;
+    }
+    local.configure({ model });
+    savePreferences({ localModel: model, model });
+    addMessage("system", `Local model set to ${model}`);
+    return;
+  }
+
+  addMessage("system", "Usage: /local [connect <base-url> <model> [api-key] | status | models | use <number|model-id>]");
 }
 
 function cmdModel(args: string[], ctx: CommandContext): void {
   const { orchestrator, addMessage } = ctx;
-  const modelId = args[0];
+  const modelArg = args[0];
+  if (!modelArg) {
+    addMessage(
+      "system",
+      `Current model: ${orchestrator.currentModel ?? "default"}\nUsage: /model <number|model-id>`,
+    );
+    return;
+  }
+  const modelId = resolveListedModel(modelArg, lastModelListing);
   if (!modelId) {
     addMessage(
       "system",
-      `Current model: ${orchestrator.currentModel ?? "default"}\nUsage: /model <model-id>`,
+      lastModelListing.length > 0
+        ? `Unknown model selection. Choose 1-${lastModelListing.length}, or use a full model id.`
+        : "Unknown model. Run /models first, or pass a full model id.",
     );
     return;
   }
   addMessage("system", `Setting model to ${modelId}...`);
   orchestrator.setModel(modelId).then(
     () => {
-      savePreferences({ model: modelId });
+      const prefs: Record<string, string> = { model: modelId };
+      if (orchestrator.currentProvider?.name === "local") {
+        prefs.localModel = modelId;
+      }
+      savePreferences(prefs);
       addMessage("system", `Model set to ${modelId}`);
     },
     (err) => addMessage("error", `Failed to set model: ${formatError(err)}`),
@@ -297,18 +355,19 @@ function cmdReasoning(args: string[], ctx: CommandContext): void {
   );
 }
 
-function cmdModels(ctx: CommandContext): void {
+function cmdModels(_args: string[], ctx: CommandContext): void {
   const { orchestrator, addMessage } = ctx;
   addMessage("system", "Fetching available models...");
   orchestrator.fetchModels().then(
     (models) => {
+      lastModelListing = models;
       const current = orchestrator.currentModel;
-      const lines = models.map((m) => {
+      const lines = models.map((m, i) => {
         const marker = m.id === current ? " ◆" : "";
         const desc = m.description ? ` — ${m.description}` : "";
-        return `  ${m.id}${marker}${desc}`;
+        return `  ${i + 1}. ${m.id}${marker}${desc}`;
       });
-      addMessage("system", `Available models:\n${lines.join("\n")}`);
+      addMessage("system", `Available models:\n${lines.join("\n")}\n\nUse /model <number|model-id> to select one.`);
     },
     (err) => addMessage("error", `Failed to fetch models: ${formatError(err)}`),
   );
@@ -443,6 +502,8 @@ function cmdMachine(args: string[], ctx: CommandContext): void {
 
 // Stash session listing so /resume <n> can look up by index
 let lastSessionListing: SessionSummary[] = [];
+let lastModelListing: Array<{ id: string }> = [];
+let lastLocalModelListing: Array<{ id: string }> = [];
 
 function cmdResume(args: string[], ctx: CommandContext): void {
   const { orchestrator, addMessage, setMessages, restoreMessages } = ctx;
@@ -649,7 +710,7 @@ function cmdHub(args: string[], ctx: CommandContext): void {
   if (subCmd === "connect") {
     const url = args[1];
     const agentName =
-      args[2] ?? `helios-${Math.random().toString(36).slice(2, 8)}`;
+      args[2] ?? `nebula-${Math.random().toString(36).slice(2, 8)}`;
     if (!url) {
       addMessage(
         "system",
@@ -683,7 +744,7 @@ function cmdHub(args: string[], ctx: CommandContext): void {
         } else {
           addMessage(
             "system",
-            `Registered as "${result.id}". Restart Helios to activate hub tools.`,
+            `Registered as "${result.id}". Restart Nebula to activate hub tools.`,
           );
         }
       },
@@ -697,7 +758,7 @@ function cmdHub(args: string[], ctx: CommandContext): void {
     removeHubConfig();
     addMessage(
       "system",
-      "AgentHub config removed. Restart Helios to remove hub tools.",
+      "AgentHub config removed. Restart Nebula to remove hub tools.",
     );
     return;
   }
@@ -816,4 +877,20 @@ async function cmdWriteup(ctx: CommandContext): Promise<void> {
   } finally {
     setIsStreaming(false);
   }
+}
+
+function resolveListedModel(
+  value: string,
+  listing: Array<{ id: string }>,
+): string | null {
+  const index = Number.parseInt(value, 10);
+  if (!Number.isNaN(index) && String(index) === value.trim()) {
+    if (index < 1 || index > listing.length) return null;
+    return listing[index - 1]?.id ?? null;
+  }
+
+  const exact = listing.find((model) => model.id === value);
+  if (exact) return exact.id;
+
+  return value.trim() ? value : null;
 }

@@ -42,7 +42,7 @@ function createHubPushTool(client: HubClient, executor: RemoteExecutor): ToolDef
         const head = headResult.stdout.trim();
 
         // Create bundle
-        const bundlePath = `/tmp/helios-bundle-${randomBytes(6).toString("hex")}.bundle`;
+        const bundlePath = `/tmp/nebula-bundle-${randomBytes(6).toString("hex")}.bundle`;
         const range = parentHash ? `${shellQuote(parentHash)}..HEAD` : "HEAD";
         const bundleCmd = `cd ${shellQuote(repoPath)} && git bundle create ${bundlePath} ${range}`;
         const bundleResult = await executor.exec(machineId, bundleCmd);
@@ -103,7 +103,7 @@ function createHubFetchTool(client: HubClient, executor: RemoteExecutor): ToolDe
 
       try {
         const bundle = await client.fetchBundle(hash);
-        const bundlePath = `/tmp/helios-fetch-${randomBytes(6).toString("hex")}.bundle`;
+        const bundlePath = `/tmp/nebula-fetch-${randomBytes(6).toString("hex")}.bundle`;
 
         if (machineId === "local") {
           writeFileSync(bundlePath, bundle);

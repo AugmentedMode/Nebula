@@ -6,7 +6,7 @@
 
 const argv = process.argv;
 const envFlags: [string, string][] = [
-  ["--home", "HELIOS_HOME"],
+  ["--home", "NEBULA_HOME"],
   ["--hub-url", "AGENTHUB_URL"],
   ["--hub-key", "AGENTHUB_KEY"],
   ["--agent", "AGENTHUB_AGENT"],

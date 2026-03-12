@@ -10,11 +10,21 @@ interface StatusBarProps {
   orchestrator: Orchestrator;
   sleepManager?: SleepManager;
   monitorManager?: MonitorManager;
+  workingStatus?: string | null;
+  workingPreview?: string | null;
+  isStreaming?: boolean;
 }
 
-const SLEEP_FRAMES = ["◇", "◆", "◇", "◇"];
+const SLEEP_FRAMES = ["·", "✦", "✶", "✦"];
 
-export function StatusBar({ orchestrator, sleepManager, monitorManager }: StatusBarProps) {
+export function StatusBar({
+  orchestrator,
+  sleepManager,
+  monitorManager,
+  workingStatus,
+  workingPreview,
+  isStreaming = false,
+}: StatusBarProps) {
   const state = orchestrator.currentState;
   const provider = orchestrator.currentProvider;
   const model = orchestrator.currentModel;
@@ -28,7 +38,7 @@ export function StatusBar({ orchestrator, sleepManager, monitorManager }: Status
   const sleepSession = sleepManager?.currentSleep;
 
   useEffect(() => {
-    if (!sleeping) return;
+    if (!sleeping && !isStreaming) return;
     const timer = setInterval(() => {
       setFrame((f) => (f + 1) % SLEEP_FRAMES.length);
       if (sleepSession) {
@@ -36,7 +46,7 @@ export function StatusBar({ orchestrator, sleepManager, monitorManager }: Status
       }
     }, 500);
     return () => clearInterval(timer);
-  }, [sleeping, sleepSession]);
+  }, [sleeping, sleepSession, isStreaming]);
 
   const stateColor = {
     idle: C.dim,
@@ -98,10 +108,21 @@ export function StatusBar({ orchestrator, sleepManager, monitorManager }: Status
       {monitorManager?.isActive && monitorManager.currentConfig && (
         <>
           <Text color={C.dim}>{" "}{G.dash}{" "}</Text>
-          <Text color={C.success}>⟳ </Text>
+          <Text color={C.success}>◌ </Text>
           <Text color={C.dim}>
             monitoring ({Math.round(monitorManager.currentConfig.intervalMs / 60_000)}m)
           </Text>
+        </>
+      )}
+
+      {workingStatus && !sleeping && (
+        <>
+          <Text color={C.dim}>{" "}{G.dash}{" "}</Text>
+          <Text color={C.primary}>{SLEEP_FRAMES[frame]} </Text>
+          <Text color={C.text}>{workingStatus}</Text>
+          {workingPreview && (
+            <Text color={C.dim}> {truncate(workingPreview, 48, true)}</Text>
+          )}
         </>
       )}
 

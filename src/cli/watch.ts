@@ -1,5 +1,5 @@
 /**
- * `helios watch <machine:pid>` — stream a running task's output + metrics.
+ * `nebula watch <machine:pid>` — stream a running task's output + metrics.
  */
 
 import { Effect } from "effect";
@@ -17,7 +17,7 @@ export const watch = Command.make(
       const [machineId, pidStr] = target.split(":");
       const pid = parseInt(pidStr, 10);
       if (!machineId || isNaN(pid)) {
-        console.error("Usage: helios watch <machine_id:pid>");
+        console.error("Usage: nebula watch <machine_id:pid>");
         process.exit(1);
       }
 

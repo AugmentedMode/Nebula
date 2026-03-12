@@ -196,7 +196,7 @@ export class ConnectionPool {
     command: string,
     logPath?: string,
   ): Promise<{ pid: number; logPath: string }> {
-    const log = logPath ?? `/tmp/helios-${Date.now()}.log`;
+    const log = logPath ?? `/tmp/nebula-${Date.now()}.log`;
 
     if (machineId === "local") {
       return this.execBackgroundLocal(command, log);

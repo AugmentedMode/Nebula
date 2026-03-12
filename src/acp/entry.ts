@@ -1,6 +1,6 @@
 /**
  * ACP mode entry point.
- * Initializes the Helios runtime and starts the ACP stdio server.
+ * Initializes the Nebula runtime and starts the ACP stdio server.
  * No TUI — pure JSON-RPC over stdin/stdout.
  */
 
@@ -28,7 +28,7 @@ const claudeMode = (() => {
 })();
 
 // stderr for logs since stdout is the ACP transport
-const log = (msg: string) => process.stderr.write(`[helios-acp] ${msg}\n`);
+const log = (msg: string) => process.stderr.write(`[nebula-acp] ${msg}\n`);
 
 log("Initializing runtime...");
 

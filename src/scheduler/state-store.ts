@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { getHeliosDir } from "../store/database.js";
+import { getNebulaDir } from "../store/database.js";
 import type { SleepSession } from "./triggers/types.js";
 
 const TRIGGERS_FILE = "triggers.json";
@@ -22,7 +22,7 @@ export class TriggerStateStore {
   private filePath: string;
 
   constructor() {
-    this.filePath = join(getHeliosDir(), TRIGGERS_FILE);
+    this.filePath = join(getNebulaDir(), TRIGGERS_FILE);
   }
 
   save(sessions: SleepSession[]): void {
@@ -39,7 +39,7 @@ export class TriggerStateStore {
       })),
     };
 
-    const dir = getHeliosDir();
+    const dir = getNebulaDir();
     mkdirSync(dir, { recursive: true });
 
     // Atomic write

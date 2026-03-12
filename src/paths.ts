@@ -1,5 +1,5 @@
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-/** Root config/data directory. Override with HELIOS_HOME env var. */
-export const HELIOS_DIR = process.env.HELIOS_HOME ?? join(homedir(), ".helios");
+/** Root config/data directory. Override with NEBULA_HOME env var. */
+export const NEBULA_DIR = process.env.NEBULA_HOME ?? join(homedir(), ".nebula");

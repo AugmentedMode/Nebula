@@ -1,12 +1,12 @@
 /**
- * `helios replay <session-id>` — read-only playback of a session's conversation.
+ * `nebula replay <session-id>` — read-only playback of a session's conversation.
  */
 
 import { Effect } from "effect";
 import { Command, Args, Options } from "@effect/cli";
 
 const sessionId = Args.text({ name: "session-id" }).pipe(
-  Args.withDescription("Session ID to replay (use 'helios sessions' to find IDs)"),
+  Args.withDescription("Session ID to replay (use 'nebula sessions' to find IDs)"),
 );
 
 const raw = Options.boolean("raw").pipe(
@@ -24,7 +24,7 @@ export const replay = Command.make(
 
       const session = store.getSession(sessionId);
       if (!session) {
-        console.error(`Session "${sessionId}" not found. Use 'helios sessions' to list sessions.`);
+        console.error(`Session "${sessionId}" not found. Use 'nebula sessions' to list sessions.`);
         process.exit(1);
       }
 
@@ -56,7 +56,7 @@ export const replay = Command.make(
             console.log(`\x1b[33m└\x1b[0m`);
             break;
           case "assistant":
-            console.log(`\x1b[36m┌─ Helios \x1b[2m${time}\x1b[0m`);
+            console.log(`\x1b[36m┌─ Nebula \x1b[2m${time}\x1b[0m`);
             // Truncate very long assistant messages for readability
             const content = msg.content.length > 2000
               ? msg.content.slice(0, 2000) + `\n... (${msg.content.length - 2000} chars truncated)`

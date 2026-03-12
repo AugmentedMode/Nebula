@@ -1,5 +1,5 @@
 /**
- * `helios init` — initialize a project with a helios.json config file.
+ * `nebula init` — initialize a project with a nebula.json config file.
  */
 
 import { Effect, Option } from "effect";
@@ -33,11 +33,11 @@ export const initCmd = Command.make(
       const { writeProjectConfig } = await import("../config/project.js");
 
       const dir = process.cwd();
-      const configPath = join(dir, "helios.json");
+      const configPath = join(dir, "nebula.json");
 
       if (existsSync(configPath)) {
-        console.log(`helios.json already exists in ${dir}`);
-        console.log("Edit it directly or delete it and re-run 'helios init'.");
+        console.log(`nebula.json already exists in ${dir}`);
+        console.log("Edit it directly or delete it and re-run 'nebula init'.");
         return;
       }
 
@@ -50,7 +50,7 @@ export const initCmd = Command.make(
       config.metricNames = ["loss", "acc", "lr"];
 
       writeProjectConfig(dir, config);
-      console.log(`Created helios.json in ${dir}`);
+      console.log(`Created nebula.json in ${dir}`);
       console.log("\nEdit it to configure:");
       console.log("  - provider/model defaults");
       console.log("  - metric names and patterns to track");

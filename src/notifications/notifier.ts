@@ -65,7 +65,7 @@ export class Notifier {
       }
     } catch (err) {
       process.stderr.write(
-        `[helios] notification error (${channel.type}): ${formatError(err)}\n`,
+        `[nebula] notification error (${channel.type}): ${formatError(err)}\n`,
       );
     }
   }
@@ -85,7 +85,7 @@ export class Notifier {
       exec(cmd, (err) => {
         if (err) {
           process.stderr.write(
-            `[helios] desktop notification error: ${err.message}\n`,
+            `[nebula] desktop notification error: ${err.message}\n`,
           );
         }
         resolve();
@@ -120,7 +120,7 @@ export class Notifier {
       await fetch(channel.url, options);
     } catch (err) {
       process.stderr.write(
-        `[helios] webhook error (${channel.url}): ${formatError(err)}\n`,
+        `[nebula] webhook error (${channel.url}): ${formatError(err)}\n`,
       );
     } finally {
       clearTimeout(timeout);
@@ -137,15 +137,15 @@ export class Notifier {
         {
           env: {
             ...process.env,
-            HELIOS_EVENT: payload.event,
-            HELIOS_TITLE: payload.title,
-            HELIOS_BODY: payload.body,
+            NEBULA_EVENT: payload.event,
+            NEBULA_TITLE: payload.title,
+            NEBULA_BODY: payload.body,
           },
         },
         (err) => {
           if (err) {
             process.stderr.write(
-              `[helios] command notification error: ${err.message}\n`,
+              `[nebula] command notification error: ${err.message}\n`,
             );
           }
           resolve();

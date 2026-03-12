@@ -94,7 +94,7 @@ export async function startCallbackServer(
       resolve({ code, state });
 
       return c.html(
-        "<html><body><h1>Authenticated!</h1><p>You can close this tab and return to Helios.</p></body></html>",
+        "<html><body><h1>Authenticated!</h1><p>You can close this tab and return to Nebula.</p></body></html>",
       );
     });
 

@@ -1,11 +1,11 @@
 {
-  "name": "@snoglobe/helios",
+  "name": "@snoglobe/nebula",
   "version": "0.2.1",
   "description": "Autonomous ML research agent TUI",
   "type": "module",
   "main": "dist/cli/index.js",
   "bin": {
-    "helios": "dist/bootstrap.js"
+    "nebula": "dist/bootstrap.js"
   },
   "scripts": {
     "build": "tsc",
@@ -19,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/snoglobe/helios.git"
+    "url": "git+https://github.com/snoglobe/nebula.git"
   },
   "keywords": [
     "ml",

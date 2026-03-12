@@ -107,7 +107,7 @@ export class RunScheduler {
     try {
       this.runStore.markSyncing(run.id, machine.id);
       if (machine.id !== "local") {
-        const targetRoot = machine.workspaceRoot ?? `~/helios-workspaces/${basename(this.workspaceSource)}`;
+        const targetRoot = machine.workspaceRoot ?? `~/nebula-workspaces/${basename(this.workspaceSource)}`;
         await this.executor.exec(machine.id, `mkdir -p ${targetRoot}`);
         await this.fileSync.upload(machine.id, `${this.workspaceSource}/`, `${targetRoot}/`);
       }
@@ -153,7 +153,7 @@ export class RunScheduler {
   private wrapCommandForWorkspace(command: string, machine: RemoteMachine): string {
     const workspaceRoot = machine.id === "local"
       ? this.workspaceSource
-      : (machine.workspaceRoot ?? `~/helios-workspaces/${basename(this.workspaceSource)}`);
+      : (machine.workspaceRoot ?? `~/nebula-workspaces/${basename(this.workspaceSource)}`);
     return `cd ${workspaceRoot} && ${command}`;
   }
 }

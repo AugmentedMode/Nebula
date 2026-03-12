@@ -58,6 +58,7 @@ type AnthropicContent =
 // Internal streaming event
 type StreamResult =
   | { kind: "delta"; text: string }
+  | { kind: "thinking"; text: string }
   | {
       kind: "complete";
       text: string;
@@ -183,7 +184,7 @@ export class ClaudeProvider implements ModelProvider {
     if (this.authMode === "cli") {
       if (attachments?.length) {
         process.stderr.write(
-          "[helios] Warning: file attachments are not supported in Claude CLI mode. Switch to API mode (--claude-mode api) to send files.\n",
+          "[nebula] Warning: file attachments are not supported in Claude CLI mode. Switch to API mode (--claude-mode api) to send files.\n",
         );
       }
       yield* this.sendViaCli(session, message, tools);
@@ -253,7 +254,7 @@ export class ClaudeProvider implements ModelProvider {
       allowDangerouslySkipPermissions: true,
       includePartialMessages: true,
       maxTurns: 50,
-      mcpServers: { helios: mcpServer },
+      mcpServers: { nebula: mcpServer },
       tools: [],
       persistSession: true,
     };
@@ -370,6 +371,8 @@ export class ClaudeProvider implements ModelProvider {
           )) {
             if (event.kind === "delta") {
               yield { type: "text", text: event.text, delta: event.text };
+            } else if (event.kind === "thinking") {
+              yield { type: "status", status: "Thinking", preview: event.text };
             } else {
               streamResult = event;
             }
@@ -602,6 +605,17 @@ export class ClaudeProvider implements ModelProvider {
             yield { kind: "delta", text: delta.text as string };
           }
 
+          if (delta?.type === "thinking_delta") {
+            const preview = typeof delta.thinking === "string"
+              ? delta.thinking
+              : typeof delta.text === "string"
+                ? delta.text
+                : "";
+            if (preview) {
+              yield { kind: "thinking", text: preview };
+            }
+          }
+
           if (delta?.type === "input_json_delta" && delta.partial_json && block) {
             block.jsonParts.push(delta.partial_json as string);
           }
@@ -661,9 +675,9 @@ export class ClaudeProvider implements ModelProvider {
 
   // ========== Utilities ==========
 
-  /** Strip the MCP server prefix (e.g. "mcp__helios__remote_exec" → "remote_exec") */
+  /** Strip the MCP server prefix (e.g. "mcp__nebula__remote_exec" → "remote_exec") */
   private stripMcpPrefix(name: string): string {
-    const prefix = "mcp__helios__";
+    const prefix = "mcp__nebula__";
     return name.startsWith(prefix) ? name.slice(prefix.length) : name;
   }
 
@@ -709,7 +723,7 @@ export class ClaudeProvider implements ModelProvider {
       ),
     );
 
-    return createSdkMcpServer({ name: "helios-tools", tools: mcpTools });
+    return createSdkMcpServer({ name: "nebula-tools", tools: mcpTools });
   }
 
   private buildZodSchema(
@@ -785,6 +799,18 @@ export class ClaudeProvider implements ModelProvider {
           event.delta.type === "text_delta"
         ) {
           yield { type: "text", text: event.delta.text, delta: event.delta.text };
+        } else if (
+          event.type === "content_block_delta" &&
+          event.delta.type === "thinking_delta"
+        ) {
+          const preview = typeof event.delta.thinking === "string"
+            ? event.delta.thinking
+            : typeof event.delta.text === "string"
+              ? event.delta.text
+              : "";
+          if (preview) {
+            yield { type: "status", status: "Thinking", preview };
+          }
         }
         break;
       }

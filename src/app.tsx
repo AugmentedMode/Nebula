@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Box, Text } from "ink";
 import type { EventEmitter } from "node:events";
 import { Layout } from "./ui/layout.js";
-import { createRuntime, type HeliosRuntime } from "./init.js";
+import { createRuntime, type NebulaRuntime } from "./init.js";
 import type { Attachment } from "./providers/types.js";
 
 interface AppProps {
@@ -21,7 +21,7 @@ export function App({
   defaultProvider, claudeMode, mouseEmitter, headless,
   initialPrompt, initialAttachments, resumeSessionId, continueSession, model,
 }: AppProps) {
-  const [runtime, setRuntime] = useState<HeliosRuntime | null>(null);
+  const [runtime, setRuntime] = useState<NebulaRuntime | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Stable refs for values used in the effect but that shouldn't trigger re-init
@@ -70,7 +70,7 @@ export function App({
   if (error) {
     return (
       <Box padding={1}>
-        <Text color="red">Failed to start Helios: {error}</Text>
+        <Text color="red">Failed to start Nebula: {error}</Text>
       </Box>
     );
   }
@@ -78,7 +78,7 @@ export function App({
   if (!runtime) {
     return (
       <Box padding={1}>
-        <Text color="yellow">Starting Helios...</Text>
+        <Text color="yellow">Starting Nebula...</Text>
       </Box>
     );
   }

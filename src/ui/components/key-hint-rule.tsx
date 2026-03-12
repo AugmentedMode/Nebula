@@ -3,6 +3,8 @@ import { Box, Text } from "ink";
 import { C, G } from "../theme.js";
 
 const HINTS = [
+  { key: "/", label: "commands" },
+  { key: "tab", label: "complete" },
   { key: "esc", label: "interrupt" },
   { key: "^t", label: "tasks" },
   { key: "^g", label: "metrics" },

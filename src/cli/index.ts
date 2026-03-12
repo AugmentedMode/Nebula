@@ -1,22 +1,22 @@
 /**
- * Helios CLI — built with @effect/cli.
+ * Nebula CLI — built with @effect/cli.
  *
  * Usage:
- *   helios                          Interactive TUI
- *   helios "prompt"                 TUI with initial prompt
- *   helios -p "prompt"              Print response and exit
- *   helios -c                       Continue most recent session
- *   helios -r <session-id>          Resume specific session
- *   helios auth login|logout|status Auth management
- *   helios sessions                 List recent sessions
- *   helios watch <machine:pid>      Stream task output + metrics
- *   helios replay <session-id>      Replay a past session
- *   helios report [session-id]      Generate experiment writeup
- *   helios init                     Initialize project config
- *   helios doctor                    Diagnose setup
- *   helios search "query"            Search session histories
- *   helios export [session-id]       Export data to CSV/JSON
- *   helios kill <machine:pid>        Kill a running task
+ *   nebula                          Interactive TUI
+ *   nebula "prompt"                 TUI with initial prompt
+ *   nebula -p "prompt"              Print response and exit
+ *   nebula -c                       Continue most recent session
+ *   nebula -r <session-id>          Resume specific session
+ *   nebula auth login|logout|status Auth management
+ *   nebula sessions                 List recent sessions
+ *   nebula watch <machine:pid>      Stream task output + metrics
+ *   nebula replay <session-id>      Replay a past session
+ *   nebula report [session-id]      Generate experiment writeup
+ *   nebula init                     Initialize project config
+ *   nebula doctor                    Diagnose setup
+ *   nebula search "query"            Search session histories
+ *   nebula export [session-id]       Export data to CSV/JSON
+ *   nebula kill <machine:pid>        Kill a running task
  */
 
 import { Command } from "@effect/cli";
@@ -45,8 +45,8 @@ import { kill } from "./kill.js";
 
 // ── Root command ─────────────────────────────────────────
 
-const helios = Command.make(
-  "helios",
+const nebula = Command.make(
+  "nebula",
   {
     provider, claudeMode, model,
     continueSession, resumeSession,
@@ -82,8 +82,8 @@ const helios = Command.make(
 
 // ── Launch ───────────────────────────────────────────────
 
-const cli = Command.run(helios, {
-  name: "helios",
+const cli = Command.run(nebula, {
+  name: "nebula",
   version: `v${VERSION}`,
 });
 

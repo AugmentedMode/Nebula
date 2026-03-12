@@ -1,5 +1,5 @@
 /**
- * `helios export` — export metrics and session data to CSV or JSON.
+ * `nebula export` — export metrics and session data to CSV or JSON.
  */
 
 import { Effect, Option } from "effect";

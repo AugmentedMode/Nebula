@@ -1,5 +1,5 @@
 /**
- * `helios kill <machine:pid>` — kill a running task from the CLI.
+ * `nebula kill <machine:pid>` — kill a running task from the CLI.
  */
 
 import { Effect } from "effect";
@@ -17,7 +17,7 @@ export const kill = Command.make(
       const [machineId, pidStr] = target.split(":");
       const pid = parseInt(pidStr, 10);
       if (!machineId || isNaN(pid)) {
-        console.error("Usage: helios kill <machine_id:pid>");
+        console.error("Usage: nebula kill <machine_id:pid>");
         process.exit(1);
       }
 

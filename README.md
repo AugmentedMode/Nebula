@@ -1,11 +1,11 @@
-# Helios
+# Nebula
 
 > [!CAUTION]
-> **Important:** Helios does not currently have a permissions/security model. The agent runs basically unrestricted. You are responsible for any losses of data/other adverse outcomes from running it. If you have stuff you care about, then back it up (whether or not you use Helios, backing up is a good idea!), run Helios in a container, or wait until it has a permissions system.
+> **Important:** Nebula does not currently have a permissions/security model. The agent runs basically unrestricted. You are responsible for any losses of data/other adverse outcomes from running it. If you have stuff you care about, then back it up (whether or not you use Nebula, backing up is a good idea!), run Nebula in a container, or wait until it has a permissions system.
 
-![Helios screenshot](https://raw.githubusercontent.com/snoglobe/helios/main/media/screnshot.png)
+![Nebula screenshot](https://raw.githubusercontent.com/snoglobe/nebula/main/media/screnshot.png)
 
-An autonomous research agent inspired by [Andrej Karpathy's 'autoresearch'](https://github.com/karpathy/autoresearch). Autoresearch works very well within Helios, just have to tune the prompt slightly.
+An autonomous research agent inspired by [Andrej Karpathy's 'autoresearch'](https://github.com/karpathy/autoresearch). Autoresearch works very well within Nebula, just have to tune the prompt slightly.
 
 It can operate seamlessly over SSH (even multiple machines), keeps the model in a loop, has tools to view/compare metrics, shows metrics directly in the UI, and has a memory system. 
 
@@ -14,7 +14,7 @@ You can leave it to work overnight and don't have to worry about it exiting the 
 ## Install
 
 ```bash
-npm install -g @snoglobe/helios
+npm install -g @snoglobe/nebula
 ```
 
 Requires Node.js 20+.
@@ -31,7 +31,7 @@ Requires Node.js 20+.
 ## Usage
 
 ```
-helios [options]
+nebula [options]
 
 Options:
   -p, --provider <claude|openai>  Model provider (default: claude)
@@ -40,7 +40,7 @@ Options:
   -h, --help                      Show help
 ```
 
-Type a goal and Helios takes over:
+Type a goal and Nebula takes over:
 
 ```
 > Train a 125M parameter GPT on TinyStories to loss < 1.0
@@ -91,7 +91,7 @@ Mouse scroll works in terminals that support SGR mouse reporting.
 
 ## Remote Machines
 
-Helios can run workloads on remote machines over SSH. The `local` machine is always available.
+Nebula can run workloads on remote machines over SSH. The `local` machine is always available.
 
 ```bash
 # Add a GPU box
@@ -101,13 +101,13 @@ Helios can run workloads on remote machines over SSH. The `local` machine is alw
 /machine add gpu2 user@hostname:2222
 ```
 
-Machines are stored in `~/.helios/machines.json` and auto-connect on startup.
+Machines are stored in `~/.nebula/machines.json` and auto-connect on startup.
 
 The agent prefers remote machines for heavy compute and uses `local` for lightweight tasks. Or if you don't have a remote machine.
 
 ## How It Works
 
-Helios runs an autonomous loop:
+Nebula runs an autonomous loop:
 
 1. **Understand the goal** — break it into experiments
 2. **Launch** via `remote_exec_background` — stdout is captured, metrics are parsed live
@@ -118,7 +118,7 @@ Helios runs an autonomous loop:
 
 ### Metric Tracking
 
-Training scripts print metrics to stdout. Helios parses them automatically:
+Training scripts print metrics to stdout. Nebula parses them automatically:
 
 ```python
 # key=value format (detected via metric_names)
@@ -195,11 +195,11 @@ The agent has access to 19 tools:
 
 ## Data
 
-Everything is stored locally in `~/.helios/`:
+Everything is stored locally in `~/.nebula/`:
 
 ```
-~/.helios/
-  helios.db          SQLite database (sessions, metrics, memory)
+~/.nebula/
+  nebula.db          SQLite database (sessions, metrics, memory)
   machines.json      Remote machine configs
   auth/
     auth.json        OAuth tokens and API keys
@@ -209,8 +209,8 @@ Everything is stored locally in `~/.helios/`:
 ## Development
 
 ```bash
-git clone https://github.com/snoglobe/helios.git
-cd helios
+git clone https://github.com/snoglobe/nebula.git
+cd nebula
 npm install
 npm run dev          # tsx src/index.tsx
 npm run build        # tsc

@@ -29,6 +29,12 @@ export interface ErrorEvent {
   recoverable: boolean;
 }
 
+export interface StatusEvent {
+  type: "status";
+  status: string;
+  preview?: string;
+}
+
 export interface DoneEvent {
   type: "done";
   usage?: TokenUsage;
@@ -39,6 +45,7 @@ export type AgentEvent =
   | ToolCallEvent
   | ToolResultEvent
   | ErrorEvent
+  | StatusEvent
   | DoneEvent;
 
 // --- Token Usage ---

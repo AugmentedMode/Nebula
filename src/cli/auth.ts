@@ -1,11 +1,11 @@
 /**
- * `helios auth` subcommands — login, logout, status.
+ * `nebula auth` subcommands — login, logout, status.
  */
 
 import { Effect, Option } from "effect";
 import { Command, Options } from "@effect/cli";
 
-// ── helios auth login ────────────────────────────────────
+// ── nebula auth login ────────────────────────────────────
 
 const loginProvider = Options.choice("provider", ["claude", "openai"]).pipe(
   Options.withAlias("P"),
@@ -44,7 +44,7 @@ export const login = Command.make(
     }),
 );
 
-// ── helios auth logout ───────────────────────────────────
+// ── nebula auth logout ───────────────────────────────────
 
 const logoutProvider = Options.choice("provider", ["claude", "openai"]).pipe(
   Options.withAlias("P"),
@@ -71,7 +71,7 @@ export const logout = Command.make(
     }),
 );
 
-// ── helios auth status ───────────────────────────────────
+// ── nebula auth status ───────────────────────────────────
 
 export const status = Command.make(
   "status",
@@ -94,7 +94,7 @@ export const status = Command.make(
     }),
 );
 
-// ── helios auth (parent command) ─────────────────────────
+// ── nebula auth (parent command) ─────────────────────────
 
 export const auth = Command.make("auth").pipe(
   Command.withSubcommands([login, logout, status]),

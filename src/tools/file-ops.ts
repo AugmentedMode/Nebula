@@ -100,7 +100,7 @@ export function createWriteFileTool(pool: ConnectionPool): ToolDefinition {
       // Use heredoc to handle multi-line content safely
       // Heredoc implicitly adds a trailing newline, so strip one from content to avoid doubling
       const body = content.endsWith("\n") ? content.slice(0, -1) : content;
-      const heredocTag = "_HELIOS_EOF_" + Math.random().toString(36).slice(2, 8);
+      const heredocTag = "_NEBULA_EOF_" + Math.random().toString(36).slice(2, 8);
       const result = await pool.exec(
         machineId,
         `cat ${op} ${shellQuote(path)} <<'${heredocTag}'\n${body}\n${heredocTag}`,
@@ -172,7 +172,7 @@ export function createPatchFileTool(pool: ConnectionPool): ToolDefinition {
       // Write back using heredoc
       // Strip trailing newline since heredoc adds one implicitly
       const body = patched.endsWith("\n") ? patched.slice(0, -1) : patched;
-      const heredocTag = "_HELIOS_EOF_" + Math.random().toString(36).slice(2, 8);
+      const heredocTag = "_NEBULA_EOF_" + Math.random().toString(36).slice(2, 8);
       const writeResult = await pool.exec(
         machineId,
         `cat > ${shellQuote(path)} <<'${heredocTag}'\n${body}\n${heredocTag}`,
