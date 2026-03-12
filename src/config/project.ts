@@ -9,7 +9,7 @@ import { homedir } from "node:os";
 
 export interface ProjectConfig {
   /** Default provider for this project */
-  provider?: "claude" | "openai";
+  provider?: "claude" | "openai" | "local";
   /** Default model */
   model?: string;
   /** Default machine to run experiments on */
@@ -132,13 +132,17 @@ export function writeProjectConfig(dir: string, config: ProjectConfig): void {
 export function mergeWithGlobalPrefs(
   projectConfig: ProjectConfig | null,
   globalPrefs: { lastProvider?: string; claudeAuthMode?: string },
-): { provider?: "claude" | "openai"; claudeMode?: "cli" | "api"; model?: string } {
-  const result: { provider?: "claude" | "openai"; claudeMode?: "cli" | "api"; model?: string } = {};
+): { provider?: "claude" | "openai" | "local"; claudeMode?: "cli" | "api"; model?: string } {
+  const result: { provider?: "claude" | "openai" | "local"; claudeMode?: "cli" | "api"; model?: string } = {};
 
   // Provider — project config wins, then global prefs
   if (projectConfig?.provider) {
     result.provider = projectConfig.provider;
-  } else if (globalPrefs.lastProvider === "claude" || globalPrefs.lastProvider === "openai") {
+  } else if (
+    globalPrefs.lastProvider === "claude" ||
+    globalPrefs.lastProvider === "openai" ||
+    globalPrefs.lastProvider === "local"
+  ) {
     result.provider = globalPrefs.lastProvider;
   }
 

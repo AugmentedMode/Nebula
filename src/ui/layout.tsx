@@ -37,7 +37,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
   const {
     orchestrator, sleepManager, connectionPool, executor,
     metricStore, metricCollector, monitorManager, experimentTracker,
-    memoryStore, stickyManager, agentName,
+    memoryStore, stickyManager, agentName, runScheduler, runStore,
   } = runtime;
   const { exit } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -63,6 +63,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
   useEffect(() => {
     const poll = async () => {
       let didCollect = false;
+      await runScheduler.tick().catch(() => {});
 
       if (executor && connectionPool) {
         const { statuses, finished } = await pollTaskStatuses(executor);
@@ -85,12 +86,29 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
         if (finished.length > 0) {
           await handleFinishedTasks(finished, {
             executor, connectionPool, metricCollector, metricStore,
-            experimentTracker, notifier: runtime.notifier,
+            experimentTracker, notifier: runtime.notifier, runStore,
           });
           didCollect = true;
         }
 
-        setTasks(updated);
+        const queuedRuns: TaskInfo[] = runScheduler
+          .listRuns(50)
+          .filter((run) => ["queued", "syncing", "running", "failed", "cancelled"].includes(run.status))
+          .map((run) => ({
+            id: run.id,
+            name: run.command.length > 40 ? run.command.slice(0, 40) + "..." : run.command,
+            status: mapRunStatus(run.status),
+            machineId: run.machineId ?? "auto",
+            pid: run.pid ?? undefined,
+            startedAt: run.startedAt ?? run.createdAt,
+            details: run.error ?? undefined,
+          }));
+
+        const merged = new Map<string, TaskInfo>();
+        for (const task of [...updated, ...queuedRuns]) {
+          merged.set(task.id, task);
+        }
+        setTasks(Array.from(merged.values()));
       }
 
       // Collect metrics from all sources (skip if we already collected for finished tasks above)
@@ -116,7 +134,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
     };
     loop();
     return () => { stopped = true; if (timer) clearTimeout(timer); };
-  }, [executor, connectionPool, metricCollector, metricStore]);
+  }, [executor, connectionPool, metricCollector, metricStore, runScheduler, runStore]);
 
   // Auto-scroll to bottom when messages change, overlay closes, or user hasn't scrolled up
   useEffect(() => {
@@ -244,7 +262,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
         await handleSlashCommand(input, {
           orchestrator, addMessage, updateMessage, setMessages, messages: messagesRef.current, setIsStreaming,
           connectionPool, metricStore, metricCollector, memoryStore,
-          stickyManager, setStickyNotes, executor,
+          stickyManager, setStickyNotes, executor, runScheduler,
           restoreMessages: (msgs) =>
             msgs.map((m) => ({
               id: ++messageIdCounter,
@@ -498,6 +516,21 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
         )}
     </Box>
   );
+}
+
+function mapRunStatus(status: string): TaskInfo["status"] {
+  switch (status) {
+    case "queued":
+    case "syncing":
+    case "running":
+    case "failed":
+    case "cancelled":
+      return status;
+    case "succeeded":
+      return "completed";
+    default:
+      return "queued";
+  }
 }
 
 /** Compact header for headless mode — shows agent name prominently. */

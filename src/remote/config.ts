@@ -52,7 +52,7 @@ export function removeMachine(id: string): boolean {
 export function parseMachineSpec(
   id: string,
   spec: string,
-  options: { key?: string; auth?: string } = {},
+  options: { key?: string; auth?: string; role?: string; slots?: string; workspace?: string } = {},
 ): RemoteMachine {
   // Parse user@host[:port]
   const atIdx = spec.indexOf("@");
@@ -81,5 +81,11 @@ export function parseMachineSpec(
     username,
     authMethod,
     keyPath: options.key,
+    roles: options.role
+      ? options.role.split(",").map((role) => role.trim()).filter(Boolean) as Array<"general" | "train">
+      : ["general"],
+    maxConcurrentTasks: options.slots ? parseInt(options.slots, 10) || 1 : 1,
+    workspaceRoot: options.workspace,
+    syncMode: "managed",
   };
 }

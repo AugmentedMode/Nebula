@@ -62,7 +62,7 @@ export const report = Command.make(
         .join("\n\n");
 
       // Create a runtime to get a provider for the writeup
-      const providerName = Option.getOrUndefined(providerOpt) as "claude" | "openai" | undefined;
+      const providerName = Option.getOrUndefined(providerOpt) as "claude" | "openai" | "local" | undefined;
       const runtime = await createRuntime({ provider: providerName });
 
       const activeProvider = runtime.orchestrator.currentProvider;

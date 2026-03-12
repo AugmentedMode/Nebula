@@ -138,6 +138,35 @@ const migrations: Migration[] = [
       ALTER TABLE sessions ADD COLUMN output_tokens INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    version: 6,
+    sql: `
+      CREATE TABLE IF NOT EXISTS queued_runs (
+        id TEXT PRIMARY KEY,
+        session_id TEXT,
+        machine_id TEXT,
+        status TEXT NOT NULL,
+        command TEXT NOT NULL,
+        log_path TEXT,
+        pid INTEGER,
+        metric_names TEXT NOT NULL DEFAULT '[]',
+        metric_patterns TEXT NOT NULL DEFAULT '{}',
+        workspace_source TEXT,
+        workspace_target TEXT,
+        workspace_snapshot TEXT,
+        created_at INTEGER NOT NULL,
+        started_at INTEGER,
+        completed_at INTEGER,
+        error TEXT,
+        exit_code INTEGER
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_queued_runs_status_created
+        ON queued_runs(status, created_at);
+      CREATE INDEX IF NOT EXISTS idx_queued_runs_machine_status
+        ON queued_runs(machine_id, status);
+    `,
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

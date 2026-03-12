@@ -12,6 +12,7 @@ import type { ExperimentTracker } from "../memory/experiment-tracker.js";
 import type { Notifier } from "../notifications/notifier.js";
 import type { BackgroundProcess } from "../remote/types.js";
 import type { MonitorConfig } from "./monitor.js";
+import type { RunStore } from "../runs/store.js";
 
 export interface TaskStatus {
   proc: BackgroundProcess;
@@ -30,6 +31,7 @@ export interface TaskPollerDeps {
   metricStore: MetricStore;
   experimentTracker: ExperimentTracker;
   notifier: Notifier | null;
+  runStore?: RunStore;
 }
 
 /**
@@ -76,11 +78,13 @@ export async function handleFinishedTasks(
     const pid = parseInt(pidStr, 10);
 
     let exitCode = 0;
+    let runId: string | undefined;
     try {
       // Read exit code from the .exit file written by the launch wrapper
       const proc = executor.getBackgroundProcesses().find(
         (p) => p.machineId === machineId && p.pid === pid,
       );
+      runId = proc?.runId;
       if (proc?.logPath) {
         const result = await connectionPool.exec(machineId, `cat ${proc.logPath}.exit 2>/dev/null`);
         const parsed = parseInt(result.stdout.trim(), 10);
@@ -88,7 +92,8 @@ export async function handleFinishedTasks(
       }
     } catch { /* default to 0 */ }
 
-    const metrics = metricStore.getLatestAll(key);
+    const metricKey = runId ?? key;
+    const metrics = metricStore.getLatestAll(metricKey);
     experimentTracker.updateExperiment(
       machineId, pid, exitCode,
       Object.keys(metrics).length > 0 ? metrics : undefined,
@@ -107,7 +112,11 @@ export async function handleFinishedTasks(
       }).catch(() => {});
     }
 
-    metricCollector.removeSource(key);
+    if (runId && deps.runStore) {
+      deps.runStore.markFinished(runId, exitCode === 0 ? "succeeded" : "failed", exitCode);
+    }
+
+    metricCollector.removeSource(metricKey);
     executor.removeBackgroundProcess(key);
   }));
 }

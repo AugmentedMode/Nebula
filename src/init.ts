@@ -7,6 +7,7 @@ import { AuthManager } from "./providers/auth/auth-manager.js";
 import { OpenAIOAuth } from "./providers/openai/oauth.js";
 import { ClaudeProvider } from "./providers/claude/provider.js";
 import { OpenAIProvider } from "./providers/openai/provider.js";
+import { LocalOpenAIProvider } from "./providers/local/provider.js";
 import { ConnectionPool } from "./remote/connection-pool.js";
 import { RemoteExecutor } from "./remote/executor.js";
 import { FileSync } from "./remote/file-sync.js";
@@ -55,6 +56,8 @@ import { findProjectConfig } from "./config/project.js";
 import { ResourceCollector } from "./metrics/resources.js";
 import { Notifier } from "./notifications/index.js";
 import { ExperimentBrancher } from "./experiments/branching.js";
+import { RunStore } from "./runs/store.js";
+import { RunScheduler } from "./runs/scheduler.js";
 
 const SYSTEM_PROMPT = `You are Helios, an autonomous ML research agent. You help researchers design, run, and monitor machine learning experiments on local and remote machines.
 
@@ -258,6 +261,8 @@ export interface HeliosRuntime {
   resourceCollector: ResourceCollector;
   notifier: Notifier | null;
   experimentBrancher: ExperimentBrancher;
+  runStore: RunStore;
+  runScheduler: RunScheduler;
   openaiOAuth: OpenAIOAuth;
   projectConfig: ReturnType<typeof findProjectConfig>;
   agentName?: string;
@@ -265,7 +270,7 @@ export interface HeliosRuntime {
 }
 
 export interface RuntimeOptions {
-  provider?: "claude" | "openai";
+  provider?: "claude" | "openai" | "local";
   claudeMode?: "cli" | "api";
 }
 
@@ -289,6 +294,12 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
   // Providers
   const claudeProvider = new ClaudeProvider(authManager, initialClaudeMode, sessionStore);
   const openaiProvider = new OpenAIProvider(authManager, sessionStore);
+  const localProvider = new LocalOpenAIProvider({
+    baseUrl: prefs.localBaseUrl,
+    apiKey: prefs.localApiKey,
+    model: prefs.localModel ?? prefs.model,
+    sessionStore,
+  });
 
   // Remote
   const connPool = new ConnectionPool();
@@ -326,6 +337,16 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
       })
     : null;
   const experimentBrancher = new ExperimentBrancher(exec);
+  const runStore = new RunStore();
+  runStore.resetActiveRunsToQueued();
+  const runScheduler = new RunScheduler({
+    runStore,
+    executor: exec,
+    connectionPool: connPool,
+    fileSync,
+    metricCollector,
+    workspaceSource: process.cwd(),
+  });
 
   // Stickies
   const stickies = new StickyManager();
@@ -359,6 +380,7 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
   orch.setStickyManager(stickies);
   orch.registerProvider(claudeProvider);
   orch.registerProvider(openaiProvider);
+  orch.registerProvider(localProvider);
 
   // Tools
   orch.registerTools([
@@ -384,7 +406,7 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
     createWriteupTool(() => orch.currentProvider ?? null),
     ...createExperimentBranchTools(experimentBrancher),
     createEnvSnapshotTool(exec, memoryStore),
-    createSweepTool(exec, connPool, metricCollector),
+    createSweepTool(exec, connPool, metricCollector, runStore),
   ]);
 
   if (hubConfig) {
@@ -431,6 +453,8 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<Helio
     resourceCollector,
     notifier,
     experimentBrancher,
+    runStore,
+    runScheduler,
     openaiOAuth,
     projectConfig,
     agentName: agentId || hubConfig?.agentName,

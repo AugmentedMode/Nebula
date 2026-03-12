@@ -2,6 +2,7 @@ import type { ToolDefinition } from "../providers/types.js";
 import type { RemoteExecutor } from "../remote/executor.js";
 import type { ConnectionPool } from "../remote/connection-pool.js";
 import type { MetricCollector } from "../metrics/collector.js";
+import type { RunStore } from "../runs/store.js";
 import {
   type MetricPatterns,
   patternsFromNames,
@@ -48,6 +49,7 @@ export function createSweepTool(
   executor: RemoteExecutor,
   pool: ConnectionPool,
   metricCollector: MetricCollector,
+  runStore: RunStore,
 ): ToolDefinition {
   return {
     name: "sweep",
@@ -112,95 +114,53 @@ export function createSweepTool(
         return JSON.stringify({ error: "No parameter combinations generated. Check your params grid." });
       }
 
-      // 2. Determine available machines
       let machineIds: string[];
       if (requestedMachines && requestedMachines.length > 0) {
         machineIds = requestedMachines;
       } else {
-        machineIds = pool
-          .getMachineIds()
-          .filter((id) => pool.getStatus(id).connected);
+        machineIds = pool.getMachineIds().filter((id) => pool.getStatus(id).connected);
       }
-
       if (machineIds.length === 0) {
         return JSON.stringify({ error: "No connected machines available for sweep." });
       }
 
-      const maxParallel = maxParallelArg ?? machineIds.length;
-      const toLaunch = combinations.slice(0, maxParallel);
-      const skipped = combinations.length - toLaunch.length;
-
-      // Build metric patterns once (shared across all runs)
-      let patterns: MetricPatterns | undefined;
       if (metricPatterns) {
-        patterns = patternsFromRegexes(metricPatterns);
+        patternsFromRegexes(metricPatterns);
       } else if (metricNames && metricNames.length > 0) {
-        patterns = patternsFromNames(metricNames);
+        patternsFromNames(metricNames);
       }
 
-      // 3. Launch runs, distributing across machines round-robin
-      const launched: Array<{
-        machineId: string;
-        pid: number;
+      const queued: Array<{
+        run_id: string;
+        requested_machine: string | null;
         params: Record<string, unknown>;
         command: string;
-        log_path: string | undefined;
       }> = [];
-      const errors: Array<{
-        params: Record<string, unknown>;
-        error: string;
-      }> = [];
-
-      await Promise.all(
-        toLaunch.map(async (combo, i) => {
-          const machineId = machineIds[i % machineIds.length];
-          const command = buildCommand(commandTemplate, combo);
-
-          try {
-            const proc = await executor.execBackground(
-              machineId,
-              command,
-              undefined,
-              { metricNames, metricPatterns },
-            );
-
-            // Register with metric collector if patterns are available
-            if (patterns && proc.logPath) {
-              try {
-                metricCollector.addSource({
-                  taskId: `${machineId}:${proc.pid}`,
-                  machineId,
-                  logPath: proc.logPath,
-                  patterns,
-                });
-              } catch {
-                // Metric registration failure is non-fatal
-              }
-            }
-
-            launched.push({
-              machineId,
-              pid: proc.pid,
-              params: combo,
-              command,
-              log_path: proc.logPath,
-            });
-          } catch (err) {
-            errors.push({
-              params: combo,
-              error: formatError(err),
-            });
-          }
-        }),
-      );
+      const requestedMachine = requestedMachines?.length === 1 ? requestedMachines[0] : null;
+      for (const combo of combinations) {
+        const command = buildCommand(commandTemplate, combo);
+        const run = runStore.createRun({
+          command,
+          machineId: requestedMachine,
+          metricNames,
+          metricPatterns,
+          workspaceSource: process.cwd(),
+          workspaceSnapshot: `${Date.now()}`,
+        });
+        queued.push({
+          run_id: run.id,
+          requested_machine: requestedMachine,
+          params: combo,
+          command,
+        });
+      }
 
       return JSON.stringify({
-        launched,
-        skipped,
-        skipped_note: skipped > 0 ? `${skipped} combinations were not launched due to max_parallel=${maxParallel}. Call sweep again with the remaining params to run them.` : undefined,
+        queued,
         total_combinations: combinations.length,
         machines_used: machineIds,
-        ...(errors.length > 0 ? { errors } : {}),
+        max_parallel: maxParallelArg ?? null,
+        note: "Runs were queued for the scheduler and will launch as machine slots become available.",
       });
     },
   };

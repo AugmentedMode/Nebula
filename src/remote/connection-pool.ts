@@ -15,6 +15,10 @@ export const LOCAL_MACHINE: RemoteMachine = {
   username: process.env.USER ?? "local",
   authMethod: "local" as any,
   labels: ["local"],
+  roles: ["general", "train"],
+  maxConcurrentTasks: 1,
+  workspaceRoot: process.cwd(),
+  syncMode: "managed",
 };
 
 interface PooledConnection {
@@ -291,6 +295,10 @@ export class ConnectionPool {
 
   getMachineIds(): string[] {
     return Array.from(this.machines.keys());
+  }
+
+  getMachineDefinitions(): RemoteMachine[] {
+    return Array.from(this.machines.values());
   }
 
   disconnect(machineId: string): void {

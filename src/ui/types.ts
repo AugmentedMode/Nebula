@@ -16,8 +16,9 @@ export interface Message {
 export interface TaskInfo {
   id: string;
   name: string;
-  status: "running" | "completed" | "failed";
+  status: "queued" | "syncing" | "running" | "completed" | "failed" | "cancelled";
   machineId: string;
   pid?: number;
   startedAt: number;
+  details?: string;
 }

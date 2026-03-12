@@ -7,6 +7,10 @@ export interface RemoteMachine {
   keyPath?: string;
   password?: string;
   labels?: string[];
+  roles?: Array<"general" | "train">;
+  maxConcurrentTasks?: number;
+  workspaceRoot?: string;
+  syncMode?: "managed";
 }
 
 export interface ExecResult {
@@ -16,6 +20,7 @@ export interface ExecResult {
 }
 
 export interface BackgroundProcess {
+  runId?: string;
   pid: number;
   machineId: string;
   command: string;

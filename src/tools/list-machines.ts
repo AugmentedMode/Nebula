@@ -14,15 +14,22 @@ export function createListMachinesTool(
     },
     execute: async () => {
       const statuses = pool.getAllStatuses();
+      const machines = pool.getMachineDefinitions();
       return JSON.stringify({
-        machines: statuses.map((s) => ({
-          id: s.machineId,
-          connected: s.connected,
-          last_connected: s.lastConnectedAt
-            ? new Date(s.lastConnectedAt).toISOString()
-            : null,
-          error: s.error ?? null,
-        })),
+        machines: machines.map((machine) => {
+          const status = statuses.find((entry) => entry.machineId === machine.id);
+          return {
+            id: machine.id,
+            connected: status?.connected ?? false,
+            last_connected: status?.lastConnectedAt
+              ? new Date(status.lastConnectedAt).toISOString()
+              : null,
+            error: status?.error ?? null,
+            roles: machine.roles ?? [],
+            max_concurrent_tasks: machine.maxConcurrentTasks ?? 1,
+            workspace_root: machine.workspaceRoot ?? null,
+          };
+        }),
       });
     },
   };

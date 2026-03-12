@@ -81,10 +81,12 @@ export interface ToolDefinition {
   execute: (args: Record<string, unknown>) => Promise<string>;
 }
 
+export type ProviderName = "claude" | "openai" | "local";
+
 // --- Provider Interface ---
 
 export interface ModelProvider {
-  readonly name: "claude" | "openai";
+  readonly name: ProviderName;
   readonly displayName: string;
 
   /** Check if the provider is authenticated */

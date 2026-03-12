@@ -27,6 +27,8 @@ import {
 import { HubClient } from "../hub/client.js";
 import { createHubTools } from "../tools/hub.js";
 import { buildWriteupSystemPrompt } from "../tools/writeup.js";
+import type { RunScheduler } from "../runs/scheduler.js";
+import { LocalOpenAIProvider } from "../providers/local/provider.js";
 
 // ─── Types ────────────────────────────────────────────
 
@@ -50,6 +52,7 @@ export interface CommandContext {
   stickyManager?: StickyManager;
   setStickyNotes?: React.Dispatch<React.SetStateAction<StickyNote[]>>;
   executor?: RemoteExecutor;
+  runScheduler?: RunScheduler;
   /** Build Message[] from stored messages (needs access to the id counter). */
   restoreMessages: (messages: Array<{ role: string; content: string }>) => Message[];
 }
@@ -62,9 +65,10 @@ export interface CommandContext {
  */
 export const COMMANDS: SlashCommand[] = [
   { name: "help", description: "Show available commands and keybindings" },
-  { name: "switch", args: "<claude|openai>", description: "Switch model provider" },
+  { name: "switch", args: "<claude|openai|local>", description: "Switch model provider" },
   { name: "model", args: "<model-id>", description: "Set model (e.g. gpt-5.4, claude-opus-4-6)" },
   { name: "models", description: "List available models for current provider" },
+  { name: "local", args: "[connect|status]", description: "Configure local OpenAI-compatible provider" },
   { name: "reasoning", args: "<level>", description: "Set reasoning effort (none/low/medium/high/max)" },
   { name: "claude-mode", args: "<cli|api>", description: "Switch Claude auth mode (cli = Agent SDK, api = API key)" },
   { name: "resume", args: "[number]", description: "List or resume a past session" },
@@ -74,6 +78,7 @@ export const COMMANDS: SlashCommand[] = [
   { name: "machine", args: "<add|rm|list>", description: "Manage remote machines" },
   { name: "machines", description: "List configured remote machines" },
   { name: "hub", args: "[connect|disconnect|status]", description: "AgentHub collaboration (self-register)" },
+  { name: "runs", args: "[cancel|retry|list]", description: "Show and manage queued/running experiments" },
   { name: "sticky", args: "<text>", description: "Pin a sticky note (always visible to the model)" },
   { name: "stickies", args: "[rm <num>]", description: "List sticky notes, or remove one by number" },
   { name: "memory", args: "[path]", description: "Show the memory tree (virtual filesystem)" },
@@ -135,6 +140,9 @@ export async function handleSlashCommand(
     case "models":
       cmdModels(ctx);
       break;
+    case "local":
+      cmdLocal(args, ctx);
+      break;
     case "claude-mode":
       cmdClaudeMode(args, ctx);
       break;
@@ -170,6 +178,9 @@ export async function handleSlashCommand(
     case "hub":
       cmdHub(args, ctx);
       break;
+    case "runs":
+      cmdRuns(args, ctx);
+      break;
     case "clear":
       ctx.setMessages([]);
       break;
@@ -186,9 +197,9 @@ export async function handleSlashCommand(
 
 function cmdSwitch(args: string[], ctx: CommandContext): void {
   const { orchestrator, addMessage } = ctx;
-  const provider = args[0] as "claude" | "openai" | undefined;
-  if (provider !== "claude" && provider !== "openai") {
-    addMessage("system", "Usage: /switch <claude|openai>");
+  const provider = args[0] as "claude" | "openai" | "local" | undefined;
+  if (provider !== "claude" && provider !== "openai" && provider !== "local") {
+    addMessage("system", "Usage: /switch <claude|openai|local>");
     return;
   }
   addMessage("system", `Switching to ${provider}...`);
@@ -196,6 +207,41 @@ function cmdSwitch(args: string[], ctx: CommandContext): void {
     () => addMessage("system", `Switched to ${provider}`),
     (err) => addMessage("error", `Failed to switch: ${formatError(err)}`),
   );
+}
+
+function cmdLocal(args: string[], ctx: CommandContext): void {
+  const { orchestrator, addMessage } = ctx;
+  const local = orchestrator.getProvider("local") as LocalOpenAIProvider | null;
+  if (!local) {
+    addMessage("error", "Local provider not registered");
+    return;
+  }
+
+  const subCmd = args[0] ?? "status";
+  if (subCmd === "status") {
+    const config = local.config;
+    addMessage(
+      "system",
+      `Local provider:\nBase URL: ${config.baseUrl}\nModel: ${config.model}\nAPI key: ${config.apiKey ? "set" : "not set"}`,
+    );
+    return;
+  }
+
+  if (subCmd === "connect") {
+    const baseUrl = args[1];
+    const model = args[2];
+    const apiKey = args[3];
+    if (!baseUrl || !model) {
+      addMessage("system", "Usage: /local connect <base-url> <model> [api-key]");
+      return;
+    }
+    local.configure({ baseUrl, model, apiKey });
+    savePreferences({ localBaseUrl: baseUrl, localModel: model, localApiKey: apiKey });
+    addMessage("system", `Configured local provider at ${baseUrl} with model ${model}`);
+    return;
+  }
+
+  addMessage("system", "Usage: /local [connect <base-url> <model> [api-key] | status]");
 }
 
 function cmdModel(args: string[], ctx: CommandContext): void {
@@ -311,7 +357,7 @@ function cmdMachine(args: string[], ctx: CommandContext): void {
     if (machines.length === 0) {
       addMessage(
         "system",
-        "No machines configured.\nUsage: /machine add <id> <user@host[:port]> [--key <path>]",
+        "No machines configured.\nUsage: /machine add <id> <user@host[:port]> [--key <path>] [--role train,general] [--slots n] [--workspace /path]",
       );
       return;
     }
@@ -323,7 +369,7 @@ function cmdMachine(args: string[], ctx: CommandContext): void {
       if (!status?.connected && status?.error) {
         statusText += ` — ${status.error}`;
       }
-      return `  ${m.id}  ${m.username}@${m.host}:${m.port}  [${m.authMethod}]  ${statusText}`;
+      return `  ${m.id}  ${m.username}@${m.host}:${m.port}  [${m.authMethod}] roles=${(m.roles ?? []).join(",") || "general"} slots=${m.maxConcurrentTasks ?? 1} workspace=${m.workspaceRoot ?? "(default)"}  ${statusText}`;
     });
     addMessage("system", `Machines:\n${lines.join("\n")}`);
     return;
@@ -335,17 +381,23 @@ function cmdMachine(args: string[], ctx: CommandContext): void {
     if (!id || !spec) {
       addMessage(
         "system",
-        "Usage: /machine add <id> <user@host[:port]> [--key <path>]",
+        "Usage: /machine add <id> <user@host[:port]> [--key <path>] [--role train,general] [--slots n] [--workspace /path]",
       );
       return;
     }
 
-    const options: { key?: string; auth?: string } = {};
+    const options: { key?: string; auth?: string; role?: string; slots?: string; workspace?: string } = {};
     for (let i = 3; i < args.length; i++) {
       if (args[i] === "--key" && args[i + 1]) {
         options.key = args[++i];
       } else if (args[i] === "--auth" && args[i + 1]) {
         options.auth = args[++i];
+      } else if (args[i] === "--role" && args[i + 1]) {
+        options.role = args[++i];
+      } else if (args[i] === "--slots" && args[i + 1]) {
+        options.slots = args[++i];
+      } else if (args[i] === "--workspace" && args[i + 1]) {
+        options.workspace = args[++i];
       }
     }
 
@@ -654,6 +706,50 @@ function cmdHub(args: string[], ctx: CommandContext): void {
     "system",
     "Usage: /hub [connect <url> [name] | disconnect | status]",
   );
+}
+
+function cmdRuns(args: string[], ctx: CommandContext): void {
+  const { addMessage, runScheduler } = ctx;
+  if (!runScheduler) {
+    addMessage("system", "Run scheduler not initialized.");
+    return;
+  }
+
+  const subCmd = args[0] ?? "list";
+  if (subCmd === "list") {
+    const runs = runScheduler.listRuns(20);
+    if (runs.length === 0) {
+      addMessage("system", "No runs queued yet.");
+      return;
+    }
+    const lines = runs.map((run) => {
+      const machine = run.machineId ?? "auto";
+      const error = run.error ? ` — ${run.error}` : "";
+      return `  ${run.id}  [${run.status}]  ${machine}  ${run.command}${error}`;
+    });
+    addMessage("system", `Runs:\n${lines.join("\n")}`);
+    return;
+  }
+
+  const id = args[1];
+  if (!id) {
+    addMessage("system", "Usage: /runs [list|cancel <id>|retry <id>]");
+    return;
+  }
+
+  if (subCmd === "cancel") {
+    const run = runScheduler.cancelRun(id);
+    addMessage("system", run ? `Run ${id} is now ${run.status}` : `Run ${id} not found`);
+    return;
+  }
+
+  if (subCmd === "retry") {
+    const run = runScheduler.retryRun(id);
+    addMessage("system", run ? `Requeued run ${id}` : `Run ${id} not found`);
+    return;
+  }
+
+  addMessage("system", "Usage: /runs [list|cancel <id>|retry <id>]");
 }
 
 async function cmdWriteup(ctx: CommandContext): Promise<void> {

@@ -26,7 +26,7 @@ export class RemoteExecutor {
     machineId: string,
     command: string,
     logPath?: string,
-    opts?: { metricNames?: string[]; metricPatterns?: Record<string, string> },
+    opts?: { metricNames?: string[]; metricPatterns?: Record<string, string>; runId?: string },
   ): Promise<BackgroundProcess> {
     const result = await this.pool.execBackground(
       machineId,
@@ -35,6 +35,7 @@ export class RemoteExecutor {
     );
 
     const proc: BackgroundProcess = {
+      runId: opts?.runId,
       pid: result.pid,
       machineId,
       command,

@@ -6,10 +6,13 @@ const CONFIG_DIR = HELIOS_DIR;
 const PREFS_FILE = join(CONFIG_DIR, "preferences.json");
 
 export interface Preferences {
-  lastProvider?: "claude" | "openai";
+  lastProvider?: "claude" | "openai" | "local";
   claudeAuthMode?: "cli" | "api";
   model?: string;
   reasoningEffort?: string;
+  localBaseUrl?: string;
+  localApiKey?: string;
+  localModel?: string;
 }
 
 function ensureDir(): void {

@@ -424,7 +424,7 @@ export class AcpServer {
   private async handleSetConfigOption(params: SetConfigOptionParams): Promise<SetConfigOptionResult> {
     if (!this.initialized) throw new Error("Not initialized");
     if (params.configId === "provider") {
-      await this.orchestrator.switchProvider(params.value as "claude" | "openai");
+      await this.orchestrator.switchProvider(params.value as "claude" | "openai" | "local");
     }
     return { configOptions: this.getConfigOptions() };
   }

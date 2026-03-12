@@ -106,7 +106,7 @@ export interface SleepSession {
   trigger: Trigger;
   agentState: {
     sessionId: string;
-    providerName: "claude" | "openai";
+    providerName: "claude" | "openai" | "local";
     providerSessionId?: string;
     pendingGoal: string;
     activeMachines: string[];

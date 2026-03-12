@@ -97,10 +97,16 @@ export function TaskListPanel({ tasks = [], resources, width }: TaskListPanelPro
 
 function statusIcon(status: string): string {
   switch (status) {
+    case "queued":
+      return G.bullet;
+    case "syncing":
+      return G.dot;
     case "running":
       return G.dot;
     case "completed":
       return G.dot;
+    case "cancelled":
+      return G.bullet;
     case "failed":
       return G.active;
     default:
@@ -110,10 +116,16 @@ function statusIcon(status: string): string {
 
 function statusColor(status: string): string {
   switch (status) {
+    case "queued":
+      return C.dim;
+    case "syncing":
+      return C.primary;
     case "running":
       return C.primary;
     case "completed":
       return C.success;
+    case "cancelled":
+      return C.dim;
     case "failed":
       return C.error;
     default:
@@ -135,4 +147,3 @@ function diskColor(used: number, total: number): string {
   if (pct > 0.75) return C.primary;
   return C.dim;
 }
-
