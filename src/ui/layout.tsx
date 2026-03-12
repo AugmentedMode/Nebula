@@ -3,9 +3,6 @@ import { Box, Text, useInput, useApp } from "ink";
 import type { EventEmitter } from "node:events";
 import { useScreenSize } from "fullscreen-ink";
 import { ScrollView, type ScrollViewRef } from "ink-scroll-view";
-import { ConversationPanel } from "./panels/conversation.js";
-import { TaskListPanel } from "./panels/task-list.js";
-import { MetricsDashboard } from "./panels/metrics-dashboard.js";
 import { StatusBar } from "./components/status-bar.js";
 import { InputBar } from "./components/input-bar.js";
 import { C, G, HRule } from "./theme.js";
@@ -22,6 +19,20 @@ import { VERSION, checkForUpdate } from "../version.js";
 import { handleSlashCommand } from "./commands.js";
 import { pollTaskStatuses, handleFinishedTasks, buildMonitorMessage } from "../core/task-poller.js";
 import type { Message, ToolData, TaskInfo } from "./types.js";
+import type { RunRecord } from "../runs/store.js";
+import {
+  buildCampaignSummary,
+  buildExperimentGroups,
+  buildFleetSummary,
+  buildNarrative,
+  buildTaskEntries,
+} from "./campaign.js";
+import {
+  CampaignOverviewPanel,
+  FleetOverviewPanel,
+  FrontierPanel,
+  ResearchNarrativePanel,
+} from "./panels/research-cockpit.js";
 
 interface LayoutProps {
   runtime: NebulaRuntime;
@@ -48,6 +59,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
 
   const [userScrolled, setUserScrolled] = useState(false);
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
+  const [runRecords, setRunRecords] = useState<RunRecord[]>([]);
   const [metricData, setMetricData] = useState<Map<string, number[]>>(new Map());
   const [stickyNotes, setStickyNotes] = useState<StickyNote[]>([]);
   const [activeOverlay, setActiveOverlay] = useState<"none" | "tasks" | "metrics">("none");
@@ -81,6 +93,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
             status: running ? "running" as const : "completed" as const,
             machineId: proc.machineId,
             pid: proc.pid,
+            logPath: proc.logPath,
             startedAt: proc.startedAt,
           };
         });
@@ -93,8 +106,8 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
           didCollect = true;
         }
 
-        const queuedRuns: TaskInfo[] = runScheduler
-          .listRuns(50)
+        const currentRuns = runScheduler.listRuns(100);
+        const queuedRuns: TaskInfo[] = currentRuns
           .filter((run) => ["queued", "syncing", "running", "failed", "cancelled"].includes(run.status))
           .map((run) => ({
             id: run.id,
@@ -102,6 +115,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
             status: mapRunStatus(run.status),
             machineId: run.machineId ?? "auto",
             pid: run.pid ?? undefined,
+            logPath: run.logPath ?? undefined,
             startedAt: run.startedAt ?? run.createdAt,
             details: run.error ?? undefined,
           }));
@@ -110,6 +124,7 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
         for (const task of [...updated, ...queuedRuns]) {
           merged.set(task.id, task);
         }
+        setRunRecords(currentRuns);
         setTasks(Array.from(merged.values()));
       }
 
@@ -435,11 +450,14 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
 
   const isSleeping = sleepManager.isSleeping;
 
-  const metricsRows = metricData.size > 0 ? metricData.size : 1;
-  const tasksRows = tasks.length > 0 ? Math.min(tasks.length, 5) : 1;
-  const panelHeight = Math.max(metricsRows, tasksRows);
-
   const { height, width } = useScreenSize();
+  const taskEntries = buildTaskEntries(tasks, runRecords, executor.getBackgroundProcesses());
+  const campaignSummary = buildCampaignSummary(messages, metricData, taskEntries, metricStore);
+  const experimentGroups = buildExperimentGroups(taskEntries, metricStore);
+  const fleetSummary = buildFleetSummary(connectionPool.getMachineDefinitions(), resourceData, taskEntries);
+  const narrative = buildNarrative(messages);
+  const stickyWidth = stickyNotes.length > 0 ? Math.min(30, Math.floor(width * 0.25)) : 0;
+  const bodyWidth = Math.max(40, width - stickyWidth - 2);
 
   // ── Fullscreen overlays ───────────────────────────────────────
   if (activeOverlay === "tasks") {
@@ -483,31 +501,36 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
 
         <Box flexShrink={0} flexDirection="row">
           <Box flexGrow={1} flexBasis={0} flexDirection="column" paddingX={1}>
-            <MetricsDashboard metricData={metricData} width={Math.floor((width - 1) / 2) - 2} />
+            <CampaignOverviewPanel
+              summary={campaignSummary}
+              width={Math.floor((width - 1) / 2) - 2}
+            />
           </Box>
           <Box width={1} flexDirection="column" alignItems="center">
             <Text color={C.primary} wrap="truncate">
-              {Array.from({ length: panelHeight }, () => "│").join("\n")}
+              {"│\n│\n│\n│\n│\n│\n│"}
             </Text>
           </Box>
           <Box flexGrow={1} flexBasis={0} flexDirection="column" paddingX={1}>
-            <TaskListPanel tasks={tasks} resources={resourceData} width={Math.floor((width - 1) / 2) - 2} />
+            <FleetOverviewPanel
+              fleet={fleetSummary}
+              width={Math.floor((width - 1) / 2) - 2}
+            />
           </Box>
         </Box>
 
         <Box flexShrink={0}><HRule /></Box>
 
-        {/* Chat area — ScrollView handles clipping and scrolling */}
         <Box flexGrow={1} flexShrink={1} flexDirection="row">
           <Box flexGrow={1} flexShrink={1}>
             {messages.length === 0 && !headless ? (
-              <Box flexGrow={1} alignItems="center" justifyContent="center" flexDirection="column">
+              <Box flexGrow={1} alignItems="center" justifyContent="center" flexDirection="column" paddingX={4}>
                 <Text color={C.bright} bold>{`${G.brand} ${G.brand} ${G.brand}`}</Text>
-                <Text color={C.primary} bold>N E B U L A</Text>
-                <Text color={C.dim}>autonomous research in orbit</Text>
+                <Text color={C.primary} bold>NEBULA CAMPAIGN COCKPIT</Text>
+                <Text color={C.dim}>State a goal. Nebula will turn it into an experiment campaign.</Text>
+                <Text color={C.dim}>The default view now emphasizes campaign status, fleet allocation, and frontier movement.</Text>
+                <Text color={C.dim}>Use Ctrl+T for raw tasks and Ctrl+G for raw metrics.</Text>
                 <Text color={C.dim} dimColor>v{VERSION}</Text>
-                <Text color={C.dim} dimColor>{""}</Text>
-                <Text color={C.dim} dimColor>/help for commands</Text>
                 {updateAvailable && (
                   <Box marginTop={1}>
                     <Text color={C.bright}>update available: v{updateAvailable} — npm i -g nebula</Text>
@@ -516,16 +539,16 @@ export function Layout({ runtime, mouseEmitter, headless, initialPrompt, initial
               </Box>
             ) : (
               <ScrollView ref={scrollRef}>
-                <ConversationPanel
-                  messages={messages}
-                  isStreaming={isStreaming}
-                />
+                <Box flexDirection="column" paddingBottom={1}>
+                  <FrontierPanel groups={experimentGroups} width={bodyWidth} />
+                  <ResearchNarrativePanel items={narrative} />
+                </Box>
               </ScrollView>
             )}
           </Box>
           {stickyNotes.length > 0 && (
             <Box flexShrink={0}>
-              <StickyNotesPanel notes={stickyNotes} width={Math.min(30, Math.floor(width * 0.25))} />
+              <StickyNotesPanel notes={stickyNotes} width={stickyWidth} />
             </Box>
           )}
         </Box>
@@ -580,8 +603,8 @@ function HeadlessHeader({ agentName, width }: { agentName: string; width: number
 function HeaderWithPanels({ width }: { width: number }) {
   const logo = ` ✦·. ${G.brand} NEBULA .·✦ `;
   const ver = `${VERSION} `;
-  const metricsLabel = ` ⣤⣸⣿ METRICS `;
-  const tasksLabel = ` ⊳ TASKS `;
+  const metricsLabel = " CAMPAIGN ";
+  const tasksLabel = " FLEET ";
 
   const half = Math.floor(width / 2);
   const leftFill = Math.max(0, half - logo.length - ver.length - metricsLabel.length - 1);

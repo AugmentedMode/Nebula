@@ -16,7 +16,7 @@ export const LOCAL_MACHINE: RemoteMachine = {
   authMethod: "local" as any,
   labels: ["local"],
   roles: ["general", "train"],
-  maxConcurrentTasks: 1,
+  maxConcurrentTasks: 2,
   workspaceRoot: process.cwd(),
   syncMode: "managed",
 };

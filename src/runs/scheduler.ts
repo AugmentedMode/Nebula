@@ -93,7 +93,7 @@ export class RunScheduler {
         const status = this.connectionPool.getStatus(machine.id);
         if (!status.connected) return false;
         if (run.machineId && run.machineId !== machine.id) return false;
-        const maxConcurrentTasks = machine.maxConcurrentTasks ?? (machine.id === "local" ? 1 : 1);
+        const maxConcurrentTasks = machine.maxConcurrentTasks ?? (machine.id === "local" ? 2 : 1);
         return this.runStore.countActiveByMachine(machine.id) < maxConcurrentTasks;
       });
 

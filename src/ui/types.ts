@@ -19,6 +19,7 @@ export interface TaskInfo {
   status: "queued" | "syncing" | "running" | "completed" | "failed" | "cancelled";
   machineId: string;
   pid?: number;
+  logPath?: string;
   startedAt: number;
   details?: string;
 }

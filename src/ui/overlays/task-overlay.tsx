@@ -31,13 +31,14 @@ export function TaskOverlay({ tasks, executor, width, height, onClose }: TaskOve
     }
 
     const proc = executor.getBackgroundProcess(selected.machineId, selected.pid ?? 0);
-    if (!proc?.logPath) {
+    const logPath = selected.logPath ?? proc?.logPath;
+    if (!logPath) {
       setOutput("(no log path available)");
       return;
     }
 
     try {
-      const text = await executor.tail(selected.machineId, proc.logPath, 500);
+      const text = await executor.tail(selected.machineId, logPath, 500);
       setOutput(text);
       setOutputError(null);
     } catch (err) {
@@ -153,4 +154,3 @@ export function TaskOverlay({ tasks, executor, width, height, onClose }: TaskOve
     </Box>
   );
 }
-
